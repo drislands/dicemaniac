@@ -82,3 +82,20 @@ Currently, the following features are available:
 
 TODO: finish updating this lol
 ```
+
+=====
+##Things Left TODO
+
+ * Move from MySQL to SQLite.
+  - This requires finishing all features that use the DB, including migrating Backronyms to it.
+ * Fully finish Backronyms bot.
+  - Ability to quit, by admins.
+  - Ability to start game, by anyone.
+  - Timeout for people taking too long.
+  - Ability to pass turn when Host.
+  - Ability to kick players when Host.
+ * Finish Magic Duelling game (still in brainstorming phase).
+  - This is very very much a WIP. No functionality exists right now, just entries in the schema.
+ * Installation script.
+  - ncurses, most likely. Will be written primarily for linux, but I hope to get this installable on all platforms.
+  - Obviously no point in starting this until the bot is done. At the very least, not until migration to SQLite is complete.
