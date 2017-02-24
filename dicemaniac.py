@@ -773,11 +773,11 @@ def backronymsGetScore(message):
             score = BACKRONYMS_SCORES[uWrap(message)]
         backSend(message,uWrap(message) + ", your score is %s." % score)
 ###
-@listen_to("^" + BACKRONYMS_KEY + ": I'm in$",re.IGNORECASE)
+@listen_to("^" + BACKRONYMS_KEY + ": I'?m in$",re.IGNORECASE)
 def backronymsSignUp(message):
     global BACKRONYMS_PLAYERS,BACKRONYMS_SCORES,BACKRONYMS_GAME_MODE
     #if BACKRONYMS_GAME_MODE == 1 and uWrap(message) not in BACKRONYMS_PLAYERS:
-    if BACKRONYMS_GAME_MODE == 1 and (uWrap(message) not in BACKRONYMS_SCORES or BACKRONYMS_SCORES[uWrap(winner)] == None):
+    if BACKRONYMS_GAME_MODE == 1 and (uWrap(message) not in BACKRONYMS_SCORES or BACKRONYMS_SCORES[uWrap(message)] == None):
         #BACKRONYMS_PLAYERS.append(uWrap(message))
         BACKRONYMS_SCORES[uWrap(message)] = 0
         backSend(message,"You have been added to the game, " + uWrap(message) + "!")
@@ -786,7 +786,7 @@ def backronymsSignUp(message):
     elif BACKRONYMS_GAME_MODE == 1 and uWrap(winner) in zUp(BACKRONYMS_SCORES):
         backSend(message,"You're already in the game, silly!")
     elif BACKRONYMS_GAME_MODE == 1:
-        BACKRONYMS_SCORES[uWrap(winner)] = 0 - BACKRONYMS_SCORES[uWrap(winner)]
+        BACKRONYMS_SCORES[uWrap(message)] = 0 - BACKRONYMS_SCORES[uWrap(message)]
         backSend(message,"You have been added to the game, " + uWrap(message) + "!")
 ###
 @listen_to("^" + BACKRONYMS_KEY + ": game on$")
@@ -912,7 +912,7 @@ def backronymsJoinQueue(message):
 ###
 @listen_to("^" + BACKRONYMS_KEY + ": drop out$")
 def backronymsDropOut(message):
-    global BACKRONYMS_WAITING,BACKRONYMS_SCORES,BACKRONYMS_WORDS,BACKRONYMS_HOST
+    global BACKRONYMS_WAITING,BACKRONYMS_SCORES,BACKRONYMS_WORDS,BACKRONYMS_HOST,BACKRONYMS_GAME_MODE
     if uWrap(message) == BACKRONYMS_HOST:
         backSend(message,"You're the host! At least pick a winner first!")
     elif uWrap(message) in BACKRONYMS_WAITING:
