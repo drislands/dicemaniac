@@ -5,7 +5,8 @@ from slackbot.bot import Bot
 import inspect
 import re
 import random
-import mysql.connector
+import pymysql
+#import mysql.connector
 import os
 import string
 
@@ -48,7 +49,7 @@ MAGIC_CHEAT,CHEAT_ROLL = False,0
 #
 
 # Initializing connections and making sure it all works.
-conn = mysql.connector.connect(user=MYSQL_USER,password=DB_PASSWORD,host='localhost',database=MYSQL_DB)
+conn = pymysql.connect(user=MYSQL_USER,password=DB_PASSWORD,host='localhost',database=MYSQL_DB)
 c = conn.cursor()
 print("Connected to database.")
 # setting up connection for giphy score.
@@ -90,6 +91,9 @@ def pokeSend(message,text):
 ###
 def magicSend(message,text):
     customSend(message,text,':mtg:','MagicFetcher')
+###
+def backSend(message,text):
+    customSend(message,text,':video_game:','Backronym Host Bot')
 #####
 
 #####
@@ -126,9 +130,9 @@ def giphyUp(message):
     global giphy,conn,GIPHY_STABLE
     if GIPHY_STABLE:
         GIPHY_STABLE = False
-        testdb(conn,c,MYSQL_USER,DB_PASSWORD,MYSQL_DB)
+        conn = testdb(conn,c,MYSQL_USER,DB_PASSWORD,MYSQL_DB)
         giphy += 1
-        c.execute("UPDATE stats SET val=%s WHERE pkey=%s",(str(giphy),"giphy score"))
+        c.execute("UPDATE stats SET val='%s' WHERE pkey='%s'"%(str(giphy),"giphy score"))
         giphySend(message,"Good job giphy! +1 point for you. Total of " + str(giphy) + " so far!")
         conn.commit()
         GIPHY_STABLE = True
@@ -138,9 +142,9 @@ def giphyDown(message):
     global giphy,conn,GIPHY_STABLE
     if GIPHY_STABLE:
         GIPHY_STABLE = False
-        testdb(conn,c,MYSQL_USER,DB_PASSWORD,MYSQL_DB)
+        conn = testdb(conn,c,MYSQL_USER,DB_PASSWORD,MYSQL_DB)
         giphy -= 1
-        c.execute("UPDATE stats SET val=%s WHERE pkey=%s",(str(giphy),"giphy score"))
+        c.execute("UPDATE stats SET val='%s' WHERE pkey='%s'"%(str(giphy),"giphy score"))
         giphySend(message,"God dammit giphy. -1 point for you. Total of " + str(giphy) + " so far.")
         conn.commit()
         GIPHY_STABLE = True
@@ -306,7 +310,7 @@ def getMode(message):
 @listen_to('^\.getmodes$')
 def getAllModes(message):
     if isAdmin(message,CONTROLLERS) or ALLOW_MADNESS:
-        testdb(conn,c,MYSQL_USER,DB_PASSWORD,MYSQL_DB)
+        conn = testdb(conn,c,MYSQL_USER,DB_PASSWORD,MYSQL_DB)
         c.execute("SELECT mode FROM settings GROUP BY mode")
         results = c.fetchall()
         if results:
@@ -335,8 +339,8 @@ def setMode(message,mode):
 def getPlayerStats(message,player):
     if isAdmin(message,CONTROLLERS) or ALLOW_MADNESS:
         if CURRENT_MODE:
-            testdb(conn,c,MYSQL_USER,DB_PASSWORD,MYSQL_DB)
-            c.execute("SELECT pkey,val FROM settings WHERE mode=%s AND player=%s",(CURRENT_MODE,player))
+            conn = testdb(conn,c,MYSQL_USER,DB_PASSWORD,MYSQL_DB)
+            c.execute("SELECT pkey,val FROM settings WHERE mode='%s' AND player='%s'"%(CURRENT_MODE,player))
             returns = c.fetchall()
             results = []
             if returns:
@@ -352,8 +356,8 @@ def getPlayerStats(message,player):
 def getStat(message,player,stat,quiet=False):
     if isAdmin(message,CONTROLLERS) or ALLOW_MADNESS:
         if CURRENT_MODE:
-            testdb(conn,c,MYSQL_USER,DB_PASSWORD,MYSQL_DB)
-            c.execute("SELECT val FROM settings WHERE mode=%s AND player=%s AND pkey=%s",
+            conn = testdb(conn,c,MYSQL_USER,DB_PASSWORD,MYSQL_DB)
+            c.execute("SELECT val FROM settings WHERE mode='%s' AND player='%s' AND pkey='%s'"%
                 (CURRENT_MODE,player,stat))
             returns = c.fetchall()
             results = []
@@ -393,16 +397,16 @@ def getStat(message,player,stat,quiet=False):
 def setStat(message,player,stat,val):
     if isAdmin(message,CONTROLLERS):
         if CURRENT_MODE:
-            testdb(conn,c,MYSQL_USER,DB_PASSWORD,MYSQL_DB)
+            conn = testdb(conn,c,MYSQL_USER,DB_PASSWORD,MYSQL_DB)
             status = getStat(message,player,stat,True)
             if status == 0:
-                c.execute("INSERT INTO settings VALUES(%s,%s,%s,%s)",
+                c.execute("INSERT INTO settings VALUES('%s','%s','%s','%s')"%
                     (CURRENT_MODE,player,val,stat))
                 message.reply("New stat `%s` created for player `%s` with value `%s`." % 
                     (stat,player,val))
                 conn.commit()
             elif status == 1:
-                c.execute("UPDATE settings SET val=%s WHERE mode=%s AND player=%s AND pkey=%s",
+                c.execute("UPDATE settings SET val='%s' WHERE mode='%s' AND player='%s' AND pkey='%s'"%
                     (val,CURRENT_MODE,player,stat))
                 message.reply("Stat `%s` for player `%s` updated to value `%s`." % 
                     (stat,player,val))
@@ -452,13 +456,13 @@ def enchantPlayer(message,player,pID):
     if isAdmin(message,CONTROLLERS):
         global DEBUG_LOG
         DEBUG_LOG += 1
-        testdb(conn,c,MYSQL_USER,DB_PASSWORD,MYSQL_DB)
+        conn = testdb(conn,c,MYSQL_USER,DB_PASSWORD,MYSQL_DB)
         #message.reply("This is a test. The player is: %s. The player ID is: %s." % (player,pID))
         print(str(DEBUG_LOG) + ": " + "Player: %s. PID: %s." % (player,pID))
-        c.execute("SELECT * FROM players WHERE name=%s OR id=%s", (player,pID))
+        c.execute("SELECT * FROM players WHERE name='%s' OR id='%s'"% (player,pID))
         results = c.fetchall()
         if not results:
-            c.execute("INSERT INTO players VALUES(%s,%s)",(player,pID))
+            c.execute("INSERT INTO players VALUES('%s','%s')"%(player,pID))
             conn.commit()
             message.send("%s: You've been enchanted!" % (pID))
         elif len(results) > 1:
@@ -517,7 +521,7 @@ def charmPlayer(message,player):
 ########
 #####
 ### Setting up the game here
-testdb(conn,c,MYSQL_USER,DB_PASSWORD,MYSQL_DB)
+conn = testdb(conn,c,MYSQL_USER,DB_PASSWORD,MYSQL_DB)
 c.execute("SELECT name,val1,val2 FROM default_moves")
 (FAST,STRN,DFND) = c.fetchall()
 ###
@@ -700,12 +704,272 @@ def roll(message):
 #    message.reply('You want me to roll a ' + re.findall('[\d]+',re.findall('[dD][\d]+$',tx(message)).pop(0)).pop(0))
 ###
 
+######
+## Backronyms!
+###
+# game_prep is to determine if we're in the stage of getting people signed up.
+BACKRONYMS_GAME_PREP = False
+# game_live is to determine if there is currently an active game.
+BACKRONYMS_GAME_LIVE = False
+# game_mode is to specify which part of the game we are in. 0 is inactive, 1 is
+#  game prep, 2 is waiting for word, 3 is waiting for answers, 4 is waiting for
+#  winner.
+BACKRONYMS_GAME_MODE = 0
+# host is to specify the person who is hosting the game.
+BACKRONYMS_HOST = None
+# players is a list of players as mentions
+BACKRONYMS_PLAYERS = []
+# waiting is a list of players who want to join next round
+BACKRONYMS_WAITING = []
+# words is a list of players and their answers
+BACKRONYMS_WORDS = {}
+# scores is a list of the scores of all players. NOTE: in the process of changing to NOT use PLAYERS variable
+#  NOTE: scores are changed to negative if the person is not playing. a score of 0 is changed to None when inactive.
+BACKRONYMS_SCORES = {}
+# key is the keyword to trigger backronyms commands
+BACKRONYMS_KEY = "bk"
+###
+@listen_to("^" + BACKRONYMS_KEY + ": get ready!$",re.IGNORECASE)
+def backronymsStart(message):
+    if isAdmin(message,CONTROLLERS):
+        global BACKRONYMS_GAME_MODE,BACKRONYMS_HOST,BACKRONYMS_PLAYERS,BACKRONYMS_SCORES
+        if not BACKRONYMS_GAME_MODE:
+            BACKRONYMS_GAME_MODE = 1
+            BACKRONYMS_HOST = uWrap(message)
+            backSend(message,"Who's ready for a game of BACKRONYMS!\nLet's see a show of hands! Say `" +
+                    BACKRONYMS_KEY + ": I'm in` if you want to play!")
+#            if uWrap(message) not in BACKRONYMS_PLAYERS:
+            if uWrap(message) not in BACKRONYMS_SCORES:
+                #BACKRONYMS_PLAYERS.append(uWrap(message))
+                BACKRONYMS_SCORES[uWrap(message)] = 0
+        elif BACKRONYMS_GAME_MODE == 1:
+            backSend(message,"We're still prepping for a game! No need to start another one! Gosh!")
+        else:
+            backSend(message,"There's already a game underway! Gosh!")
+###
+@listen_to('^' + BACKRONYMS_KEY + ': get players$',re.IGNORECASE)
+def backronymsGetPlayers(message):
+    if uWrap(message) == BACKRONYMS_HOST:
+        if BACKRONYMS_SCORES:
+            retVal = ', '.join(list(BACKRONYMS_SCORES.keys()))
+            backSend(message,"These are the current registered players: " + retVal)
+        else:
+            backSend(message,"There are no registered players.")
+            return
+        if zUp(BACKRONYMS_SCORES):
+            retVal = ', '.join(zUp(BACKRONYMS_SCORES))
+            backSend(message,"These are the current active players: " + retVal)
+        else:
+            backSend(message,"There are no active players at this time.")
+###
+@listen_to("^" + BACKRONYMS_KEY + ": get score$",re.IGNORECASE)
+def backronymsGetScore(message):
+    if uWrap(message) in BACKRONYMS_SCORES:
+        if BACKRONYMS_SCORES[uWrap(message)] == None:
+            score = str(0) + ". You are currently listed as inactive."
+        elif BACKRONYMS_SCORES[uWrap(message)] < 0:
+            score = str(0 - BACKRONYMS_SCORES[uWrap(message)]) + ". You are currently listed as inactive."
+        else:
+            score = BACKRONYMS_SCORES[uWrap(message)]
+        backSend(message,uWrap(message) + ", your score is %s." % score)
+###
+@listen_to("^" + BACKRONYMS_KEY + ": I'm in$",re.IGNORECASE)
+def backronymsSignUp(message):
+    global BACKRONYMS_PLAYERS,BACKRONYMS_SCORES,BACKRONYMS_GAME_MODE
+    #if BACKRONYMS_GAME_MODE == 1 and uWrap(message) not in BACKRONYMS_PLAYERS:
+    if BACKRONYMS_GAME_MODE == 1 and (uWrap(message) not in BACKRONYMS_SCORES or BACKRONYMS_SCORES[uWrap(winner)] == None):
+        #BACKRONYMS_PLAYERS.append(uWrap(message))
+        BACKRONYMS_SCORES[uWrap(message)] = 0
+        backSend(message,"You have been added to the game, " + uWrap(message) + "!")
+    elif BACKRONYMS_GAME_MODE > 1:
+        backSend(message,"The game's already started, silly!")
+    elif BACKRONYMS_GAME_MODE == 1 and uWrap(winner) in zUp(BACKRONYMS_SCORES):
+        backSend(message,"You're already in the game, silly!")
+    elif BACKRONYMS_GAME_MODE == 1:
+        BACKRONYMS_SCORES[uWrap(winner)] = 0 - BACKRONYMS_SCORES[uWrap(winner)]
+        backSend(message,"You have been added to the game, " + uWrap(message) + "!")
+###
+@listen_to("^" + BACKRONYMS_KEY + ": game on$")
+def backronymsStartGame(message):
+    global BACKRONYMS_GAME_MODE,BACKRONYMS_PLAYERS,BACKRONYMS_HOST,BACKRONYMS_SCORES
+    if uWrap(message) == BACKRONYMS_HOST and BACKRONYMS_GAME_MODE == 1:
+#        if len(BACKRONYMS_PLAYERS) < 2:
+        if len(BACKRONYMS_SCORES) < 2:
+            backSend(message,"You can't just play Backronyms with only one person! Gosh!")
+        else:
+            BACKRONYMS_GAME_MODE = 2
+#            pList = ', '.join(BACKRONYMS_PLAYERS)
+            pList = ', '.join(list(BACKRONYMS_SCORES.keys()))
+            backSend(message,"And away we go! " + pList + ", we are starting the game! The host for the first round is: " + BACKRONYMS_HOST + "! Start us off with `" +
+                    BACKRONYMS_KEY + ": set WORD`!")
+    else:
+        print("User is: " + uWrap(message))
+        print("Host is: " + BACKRONYMS_HOST)
+        print("Game mode is: " + str(BACKRONYMS_GAME_MODE))
+###
+@listen_to("^" + BACKRONYMS_KEY + ": set (.*)$")
+def backronymsSetWord(message,word):
+    global BACKRONYMS_GAME_MODE,BACKRONYMS_PLAYERS,BACKRONYMS_HOST,BACKRONYMS_WORDS,BACKRONYMS_SCORES
+    if uWrap(message) not in BACKRONYMS_SCORES:
+        backSend(message,"Sorry, but you are not a registered player.")
+        return
+    if uWrap(message) == BACKRONYMS_HOST and BACKRONYMS_GAME_MODE == 2:
+        backSend(message,"Alright then! " + word + " is the word! Players, send in your answers with `" +
+        BACKRONYMS_KEY + ": set ANSWER`!") # Consider adding ability to reset word?
+        BACKRONYMS_GAME_MODE = 3
+    elif BACKRONYMS_GAME_MODE == 2:
+        backSend(message,"You may not send an answer until the host has picked a word, sorry!")
+    elif uWrap(message) == BACKRONYMS_HOST and BACKRONYMS_GAME_MODE == 3:
+        backSend(message,"It is time for the others to post their answers, gosh!")
+    elif BACKRONYMS_GAME_MODE == 3 and uWrap(message) not in BACKRONYMS_WORDS:
+        BACKRONYMS_WORDS[uWrap(message)] = word
+        backSend(message,uWrap(message) + ": Your answer has been received!")
+        done = True
+#        for i in BACKRONYMS_PLAYERS:
+        for i in zUp(BACKRONYMS_SCORES):
+            if not i == BACKRONYMS_HOST and not i in BACKRONYMS_WORDS:
+                done = False
+        if done:
+            backSend(message,"All answers have been put in! " + BACKRONYMS_HOST + ", it is time to pick a winner! Type `" +
+            BACKRONYMS_KEY + ": get answers` to see a list of all answers and who picked them. To pick a winner, type `" +
+            BACKRONYMS_KEY + ": pick @user`!")
+            BACKRONYMS_GAME_MODE = 4
+    elif BACKRONYMS_GAME_MODE == 3:
+        backSend(message,"You've already sent in your answer! Too late to change it now!") # maybe add in a feature to let them change it?
+    else:
+        backSend(message,"This is neither the time to specify a word or to send in an answer! C'mon!")
+###
+@listen_to("^" + BACKRONYMS_KEY + ": get answers$",re.IGNORECASE)
+def backronymsGetAnswers(message):
+    if BACKRONYMS_WORDS:
+        answer = "```"
+        for i in BACKRONYMS_WORDS:
+            answer = answer + i + ": " + BACKRONYMS_WORDS[i] + "\n"
+        answer = answer + "```"
+        backSend(message,answer)
+    else:
+        backSend(message,"There are no stored answers at this time.")
+###
+@listen_to("^" + BACKRONYMS_KEY + ": pick (.*)$",re.IGNORECASE)
+def backronymsPickWinner(message,winner):
+    global BACKRONYMS_GAME_MODE,BACKRONYMS_HOST,BACKRONYMS_WORDS,BACKRONYMS_SCORES,BACKRONYMS_WAITING
+    if uWrap(message) == BACKRONYMS_HOST:
+        if BACKRONYMS_GAME_MODE != 4:
+            backSend(message,"It's not time to pick a winner yet, silly!")
+        elif winner not in BACKRONYMS_SCORES:
+            backSend(message,"That person isn't even playing! C'mon!")
+        elif uWrap(message) == winner:
+            backSend(message,"You can't pick yourself, you goof!")
+        else:
+            if winner in zUp(BACKRONYMS_SCORES):
+                score = BACKRONYMS_SCORES[winner] = BACKRONYMS_SCORES[winner] + 1
+            else:
+                if not BACKRONYMS_SCORES[winner]:
+                    BACKRONYMS_SCORES[winner] = -1
+                else:
+                    BACKRONYMS_SCORES[winner] = BACKRONYMS_SCORES[winner] - 1
+                score = 0 - BACKRONYMS_SCORES[winner]
+            backSend(message,winner + ": Congratulations! Your entry, \"" + 
+                    BACKRONYMS_WORDS[winner] + "\", is the winner! +1 point for you, for a total of %s!" %
+                    str(score))
+            BACKRONYMS_GAME_MODE = 2
+            BACKRONYMS_WORDS = {}
+            if winner in zUp(BACKRONYMS_SCORES):
+                BACKRONYMS_HOST = winner
+                backSend(message,winner + ": You are now the host for this next round! Type `"+ 
+                        BACKRONYMS_KEY + ": set WORD` to pick your word for this round!")
+            else:
+                backSend(message,uWrap(message) + ", you will reamin the host. Type `" +
+                        BACKRONYMS_KEY + ": set WORD` to pick your word for this round!")
+            if BACKRONYMS_WAITING:
+                for i in BACKRONYMS_WAITING:
+                    if i not in BACKRONYMS_SCORES or not BACKRONYMS_SCORES[i]:
+                        BACKRONYMS_SCORES[i] = 0
+                    else:
+                        BACKRONYMS_SCORES[i] = 0 - BACKRONYMS_SCORES[i]
+                BACKRONYMS_WAITING = []
+                backSend(message,"Those of you in the waiting list: " +
+                        ', '.join(BACKRONYMS_WAITING) + 
+                        " have been added to the game! You may enter your answers once the word has been picked!")
+    else:
+        backSend(message,"You're not the host, silly!")
+###
+@listen_to("^" + BACKRONYMS_KEY + ": me next$")
+def backronymsJoinQueue(message):
+    global BACKRONYMS_WAITING,BACKRONYMS_SCORES
+    if uWrap(message) in BACKRONYMS_WAITING:
+        backSend(message,"You're already in the queue!")
+    elif BACKRONYMS_GAME_MODE == 1:
+        backSend(message,"We're still in prep mode! You can join the game by typing `" +
+                BACKRONYMS_KEY + ": I'm in`!")
+    elif BACKRONYMS_GAME_MODE == 0:
+        backSend(message,"There isn't a game in progress!")
+    elif uWrap(message) in zUp(BACKRONYMS_SCORES):
+        backSend(message,"You're already playing! C'mon!")
+    else:
+        BACKRONYMS_WAITING.append(uWrap(message))
+        backSend(message,uWrap(message) + ", you have been added to the queue. See you next round!")
+###
+@listen_to("^" + BACKRONYMS_KEY + ": drop out$")
+def backronymsDropOut(message):
+    global BACKRONYMS_WAITING,BACKRONYMS_SCORES,BACKRONYMS_WORDS,BACKRONYMS_HOST
+    if uWrap(message) == BACKRONYMS_HOST:
+        backSend(message,"You're the host! At least pick a winner first!")
+    elif uWrap(message) in BACKRONYMS_WAITING:
+        BACKRONYMS_WAITING.remove(uWrap(message))
+        backSend(message,"You have been removed from the waiting list.")
+    elif uWrap(message) in zUp(BACKRONYMS_SCORES):
+        if BACKRONYMS_SCORES[uWrap(message)] == 0:
+            BACKRONYMS_SCORES[uWrap(message)] = None
+        else:
+            BACKRONYMS_SCORES[uWrap(message)] = 0 - BACKRONYMS_SCORES[uWrap(message)]
+        backSend(message,"You have been removed from the active list. Your score has been saved!")
+        if len(zUp(BACKRONYMS_SCORES)) < 2:
+            backSend(message,"There are now too few people to play right now. The game will be ended, but your scores will be saved! Play again some time!")
+            if BACKRONYMS_SCORES[BACKRONYMS_HOST] == 0:
+                BACKRONYMS_SCORES[BACKRONYMS_HOST] = None
+            else:
+                BACKRONYMS_SCORES[BACKRONYMS_HOST] = 0 - BACKRONYMS_SCORES[BACKRONYMS_HOST]
+            BACKRONYMS_GAME_MODE = 0
+            BACKRONYMS_HOST = None
+            BACKRONYMS_WAITING = [] # TODO: if there are waiting players maybe just start another game?
+            return
+        done = True
+        for i in zUp(BACKRONYMS_SCORES):
+            if i not in BACKRONYMS_WORDS:
+                done = False
+        if done:
+            backSend(message,"With this dropping-out, all answers have been put in! " +
+                    BACKRONYMS_HOST + ", it is time to pick a winner! Type `" +
+                    BACKRONYMS_KEY + ": get answers` to see a list of all answers and who picked them. To pick a winner, type `" +
+                    BACKRONYMS_KEY + ": pick @user`!")
+            BACKRONYMS_GAME_MODE = 4
+    else:
+        backSend(message,"You aren't on either the active or the waiting list. No dropping out needed!")
+###
+@listen_to("^" + BACKRONYMS_KEY + ": help$")
+def backronymsHelp(message):
+    backSend(message,"The following commands can be given by typing `" +
+            BACKRONYMS_KEY + ": COMMAND`. The list of commands is as follows:" +
+            """```"get ready!" -- Starts a game of Backronyms. Only usable by admin users.
+"get players" -- Provides a list of all players registered for the current game.
+"get score" -- Provides your score.
+"I'm in" -- Registers yourself for the current game. Only usable during the pre-game period.
+"game on" -- Starts the game once players have been registered. Only usable by the host pre-game.
+"set WORD/Answer" -- When used as the host, specifies the word for this round. When used as another player, locks in your answer for this round.
+"get answers" -- Provides all answers given this round.
+"pick @user" -- Picks the winner for this round.
+"me next" -- Adds you to the waiting list for the next round, if you aren't in the game yet.
+"drop out" -- Removes you from the game, but saves your score. You can come back later with "me next".
+"help" -- Print this help message.```""")
+######
 ##########
 ## TESTING! TURN _*OFF*_ WHEN NOT TESTING@
 ######
 #@listen_to('.')
 #def printAll(message):
 #    print(message.body['user'] + ": " + tx(message))
+#    pokeSend(message,"This is the speaker: <@" + message.body['user'] + ">")
 ######
 ## END TEST SEGMENT
 ##########

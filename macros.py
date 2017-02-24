@@ -1,16 +1,17 @@
 import random
 import string
-import mysql.connector
+import pymysql
+#import mysql.connector
 
 ######
 # IMPORTANT MACROS
 ###
 def testdb(connection,cursor,dbus,dbpw,dbdb):
-    try:
-        cursor.execute("SHOW TABLES")
-        cursor.fetchall()
-    except:
-        connection = mysql.connector.connect(user=dbus,password=dbpw,host='localhost',database=dbdb)
+    if connection.open:
+        return connection
+    else:
+        c = pymysql.connect(user=dbus,password=dbpw,host='localhost',database=dbdb)
+        return c
 ###
 def tx(message):
     return message.body['text']
@@ -50,4 +51,18 @@ def isAdmin(message,controllers):
 ###
 def genRand32():
     return ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for _ in range(32))
+### Wraps the userID into a mention.
+def userWrap(UID):
+    return '<@' + UID + '>'
+###
+def uWrap(message):
+    return userWrap(message.body['user'])
+### Returns a list of the keys in a dictionary that correspond to numbers 0 or higher.
+###  NOTE: zUp refers to the fact that it only gets values of 0 or up. _Z_ero or _Up_.
+def zUp(dic):
+    retVal = []
+    for i in dic:
+        if dic[i] != None and dic[i] > -1:
+            retVal.append(i)
+    return retVal
 #####
