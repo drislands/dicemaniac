@@ -804,7 +804,8 @@ def backronymsStartGame(message):
                     BACKRONYMS_KEY + ": set WORD`!")
     else:
         print("User is: " + uWrap(message))
-        print("Host is: " + BACKRONYMS_HOST)
+        if BACKRONYMS_HOST:
+            print("Host is: " + BACKRONYMS_HOST)
         print("Game mode is: " + str(BACKRONYMS_GAME_MODE))
 ###
 @listen_to("^" + BACKRONYMS_KEY + ": set (.*)$")
@@ -911,41 +912,86 @@ def backronymsJoinQueue(message):
         backSend(message,uWrap(message) + ", you have been added to the queue. See you next round!")
 ###
 @listen_to("^" + BACKRONYMS_KEY + ": drop out$")
-def backronymsDropOut(message):
+def backronymsDropOut(message,player=None):
     global BACKRONYMS_WAITING,BACKRONYMS_SCORES,BACKRONYMS_WORDS,BACKRONYMS_HOST,BACKRONYMS_GAME_MODE
-    if uWrap(message) == BACKRONYMS_HOST:
-        backSend(message,"You're the host! At least pick a winner first!")
-    elif uWrap(message) in BACKRONYMS_WAITING:
-        BACKRONYMS_WAITING.remove(uWrap(message))
-        backSend(message,"You have been removed from the waiting list.")
-    elif uWrap(message) in zUp(BACKRONYMS_SCORES):
-        if BACKRONYMS_SCORES[uWrap(message)] == 0:
-            BACKRONYMS_SCORES[uWrap(message)] = None
-        else:
-            BACKRONYMS_SCORES[uWrap(message)] = 0 - BACKRONYMS_SCORES[uWrap(message)]
-        backSend(message,"You have been removed from the active list. Your score has been saved!")
-        if len(zUp(BACKRONYMS_SCORES)) < 2:
-            backSend(message,"There are now too few people to play right now. The game will be ended, but your scores will be saved! Play again some time!")
-            if BACKRONYMS_SCORES[BACKRONYMS_HOST] == 0:
-                BACKRONYMS_SCORES[BACKRONYMS_HOST] = None
+    if not player:
+        if uWrap(message) == BACKRONYMS_HOST:
+            backSend(message,"You're the host! At least pick a winner first!")
+        elif uWrap(message) in BACKRONYMS_WAITING:
+            BACKRONYMS_WAITING.remove(uWrap(message))
+            backSend(message,"You have been removed from the waiting list.")
+        elif uWrap(message) in zUp(BACKRONYMS_SCORES):
+            if BACKRONYMS_SCORES[uWrap(message)] == 0:
+                BACKRONYMS_SCORES[uWrap(message)] = None
             else:
-                BACKRONYMS_SCORES[BACKRONYMS_HOST] = 0 - BACKRONYMS_SCORES[BACKRONYMS_HOST]
-            BACKRONYMS_GAME_MODE = 0
-            BACKRONYMS_HOST = None
-            BACKRONYMS_WAITING = [] # TODO: if there are waiting players maybe just start another game?
-            return
-        done = True
-        for i in zUp(BACKRONYMS_SCORES):
-            if i not in BACKRONYMS_WORDS:
-                done = False
-        if done:
-            backSend(message,"With this dropping-out, all answers have been put in! " +
-                    BACKRONYMS_HOST + ", it is time to pick a winner! Type `" +
-                    BACKRONYMS_KEY + ": get answers` to see a list of all answers and who picked them. To pick a winner, type `" +
-                    BACKRONYMS_KEY + ": pick @user`!")
-            BACKRONYMS_GAME_MODE = 4
+                BACKRONYMS_SCORES[uWrap(message)] = 0 - BACKRONYMS_SCORES[uWrap(message)]
+            backSend(message,"You have been removed from the active list. Your score has been saved!")
+            if len(zUp(BACKRONYMS_SCORES)) < 2:
+                backSend(message,"There are now too few people to play right now. The game will be ended, but your scores will be saved! Play again some time!")
+                if BACKRONYMS_SCORES[BACKRONYMS_HOST] == 0:
+                    BACKRONYMS_SCORES[BACKRONYMS_HOST] = None
+                else:
+                    BACKRONYMS_SCORES[BACKRONYMS_HOST] = 0 - BACKRONYMS_SCORES[BACKRONYMS_HOST]
+                BACKRONYMS_GAME_MODE = 0
+                BACKRONYMS_HOST = None
+                BACKRONYMS_WAITING = [] # TODO: if there are waiting players maybe just start another game?
+                return
+            done = True
+            for i in zUp(BACKRONYMS_SCORES):
+                if i not in BACKRONYMS_WORDS:
+                    done = False
+            if done:
+                backSend(message,"With this dropping-out, all answers have been put in! " +
+                        BACKRONYMS_HOST + ", it is time to pick a winner! Type `" +
+                        BACKRONYMS_KEY + ": get answers` to see a list of all answers and who picked them. To pick a winner, type `" +
+                        BACKRONYMS_KEY + ": pick @user`!")
+                BACKRONYMS_GAME_MODE = 4
+        else:
+            backSend(message,"You aren't on either the active or the waiting list. No dropping out needed!")
+    # targeted kicking section"
     else:
-        backSend(message,"You aren't on either the active or the waiting list. No dropping out needed!")
+        if player == uWrap(message):
+            backSend(message,"You can't drop out when you're the host, and you can't target yourself. You goof!")
+        elif player in BACKRONYMS_WAITING:
+            BACKRONYMS_WAITING.remove(player)
+            backSend(message,"Ok, %s has been removed from the waiting list." % player)
+        elif player in zUp(BACKRONYMS_SCORES):
+            if BACKRONYMS_SCORES[player] == 0:
+                BACKRONYMS_SCORES[player] = None
+            else:
+                BACKRONYMS_SCORES[player] = 0 - BACKRONYMS_SCORES[player]
+            backSend(message,player + " has been removed from the active list, and their score has been saved.")
+            if len(zUp(BACKRONYMS_SCORES)) < 2:
+                backSend(message,"There are now too few people to play right now. The game will be ended, but your scores will be saved! Play again some time!")
+                if BACKRONYMS_SCORES[BACKRONYMS_HOST] == 0:
+                    BACKRONYMS_SCORES[BACKRONYMS_HOST] = None
+                else:
+                    BACKRONYMS_SCORES[BACKRONYMS_HOST] = 0 - BACKRONYMS_SCORES[BACKRONYMS_HOST]
+                BACKRONYMS_GAME_MODE = 0
+                BACKRONYMS_HOST = None
+                BACKRONYMS_WAITING = [] # TODO: if there are waiting players maybe just start another game?
+                return
+            done = True
+            for i in zUp(BACKRONYMS_SCORES):
+                if i not in BACKRONYMS_WORDS:
+                    done = False
+            if done:
+                backSend(message,"With this kicking-out, all answers have been put in! " +
+                        BACKRONYMS_HOST + ", it is time to pick a winner! Type `" +
+                        BACKRONYMS_KEY + ": get answers` to see a list of all answers and who picked them. To pick a winner, type `" +
+                        BACKRONYMS_KEY + ": pick @user`!")
+                BACKRONYMS_GAME_MODE = 4
+        else:
+            backSend(message,player + " isn't on either the active or the waiting list. No kicking out needed!")
+
+### For the kicking-out function, we call the Drop-Out function because it uses
+###  a lot of the same code -- but with the player flag set.
+@listen_to("^" + BACKRONYMS_KEY + ": kick (.*)$",re.IGNORECASE)
+def backronymsKickUser(message,player):
+    if uWrap(message) == BACKRONYMS_HOST:
+        backronymsDropOut(message,player)
+    else:
+        backSend(message,"You can only kick out people when you're the host!")
 ###
 @listen_to("^" + BACKRONYMS_KEY + ": help$")
 def backronymsHelp(message):
@@ -961,6 +1007,7 @@ def backronymsHelp(message):
 "pick @user" -- Picks the winner for this round.
 "me next" -- Adds you to the waiting list for the next round, if you aren't in the game yet.
 "drop out" -- Removes you from the game, but saves your score. You can come back later with "me next".
+"kick PLAYER" -- Removes target player from the game, and saves their score. Only usable by the current host.
 "help" -- Print this help message.```""")
 ######
 ##########
