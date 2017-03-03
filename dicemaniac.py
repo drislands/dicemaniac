@@ -94,6 +94,9 @@ def magicSend(message,text):
 ###
 def backSend(message,text):
     customSend(message,text,':video_game:','Backronym Host Bot')
+###
+def orcSend(message,text):
+    customSend(message,text,':orc:','Orc Warrior Bot')
 #####
 
 #####
@@ -707,10 +710,6 @@ def roll(message):
 ######
 ## Backronyms!
 ###
-# game_prep is to determine if we're in the stage of getting people signed up.
-BACKRONYMS_GAME_PREP = False
-# game_live is to determine if there is currently an active game.
-BACKRONYMS_GAME_LIVE = False
 # game_mode is to specify which part of the game we are in. 0 is inactive, 1 is
 #  game prep, 2 is waiting for word, 3 is waiting for answers, 4 is waiting for
 #  winner.
@@ -728,6 +727,8 @@ BACKRONYMS_WORDS = {}
 BACKRONYMS_SCORES = {}
 # key is the keyword to trigger backronyms commands
 BACKRONYMS_KEY = "bk"
+# WORD is the word being used as the point for backronyms
+BACKRONYTMS_word = ""
 ###
 @listen_to("^" + BACKRONYMS_KEY + ": get ready!$",re.IGNORECASE)
 def backronymsStart(message):
@@ -737,7 +738,8 @@ def backronymsStart(message):
             BACKRONYMS_GAME_MODE = 1
             BACKRONYMS_HOST = uWrap(message)
             backSend(message,"Who's ready for a game of BACKRONYMS!\nLet's see a show of hands! Say `" +
-                    BACKRONYMS_KEY + ": I'm in` if you want to play!")
+                    BACKRONYMS_KEY + ": I'm in` if you want to play!\nIf you want to see a list of commands, type `"+
+                    BACKRONYMS_KEY + ": help`!")
 #            if uWrap(message) not in BACKRONYMS_PLAYERS:
             if uWrap(message) not in BACKRONYMS_SCORES:
                 #BACKRONYMS_PLAYERS.append(uWrap(message))
@@ -762,13 +764,25 @@ def backronymsGetPlayers(message):
         else:
             backSend(message,"There are no active players at this time.")
 ###
+@listen_to("^" + BACKRONYMS_KEY + ": nudge players$",re.IGNORECASE)
+def backronymsNudge(message):
+    if uWrap(message) == BACKRONYMS_HOST and BACKRONYMS_GAME_MODE == 3:
+        resLis = []
+        for i in zUp(BACKRONYMS_SCORES):
+            if i not in BACKRONYMS_WORDS:
+                resLis.append(i)
+        backSend(message,', '.join(resLis) + ": you have yet to enter your words for this round! If you've forgotten the word, you can get it with `" +
+                BACKROYNMS_KEY + ": get word`!")
+    elif uWrap(message) == BACKRONYMS_HOST:
+        backSend(message,"You can only nudge the other players when you are waiting for them to enter their answers!")
+###
 @listen_to("^" + BACKRONYMS_KEY + ": get score$",re.IGNORECASE)
 def backronymsGetScore(message):
     if uWrap(message) in BACKRONYMS_SCORES:
         if BACKRONYMS_SCORES[uWrap(message)] == None:
-            score = str(0) + ". You are currently listed as inactive."
+            score = str(0) + ". You are currently listed as inactive"
         elif BACKRONYMS_SCORES[uWrap(message)] < 0:
-            score = str(0 - BACKRONYMS_SCORES[uWrap(message)]) + ". You are currently listed as inactive."
+            score = str(0 - BACKRONYMS_SCORES[uWrap(message)]) + ". You are currently listed as inactive"
         else:
             score = BACKRONYMS_SCORES[uWrap(message)]
         backSend(message,uWrap(message) + ", your score is %s." % score)
@@ -791,7 +805,7 @@ def backronymsSignUp(message):
 ###
 @listen_to("^" + BACKRONYMS_KEY + ": game on$")
 def backronymsStartGame(message):
-    global BACKRONYMS_GAME_MODE,BACKRONYMS_PLAYERS,BACKRONYMS_HOST,BACKRONYMS_SCORES
+    global BACKRONYMS_GAME_MODE,BACKRONYMS_PLAYERS,BACKRONYMS_HOST,BACKRONYMS_SCORES,BACKRONYMS_word
     if uWrap(message) == BACKRONYMS_HOST and BACKRONYMS_GAME_MODE == 1:
 #        if len(BACKRONYMS_PLAYERS) < 2:
         if len(BACKRONYMS_SCORES) < 2:
@@ -800,6 +814,7 @@ def backronymsStartGame(message):
             BACKRONYMS_GAME_MODE = 2
 #            pList = ', '.join(BACKRONYMS_PLAYERS)
             pList = ', '.join(list(BACKRONYMS_SCORES.keys()))
+            BACKRONYMS_word = ""
             backSend(message,"And away we go! " + pList + ", we are starting the game! The host for the first round is: " + BACKRONYMS_HOST + "! Start us off with `" +
                     BACKRONYMS_KEY + ": set WORD`!")
     else:
@@ -810,13 +825,16 @@ def backronymsStartGame(message):
 ###
 @listen_to("^" + BACKRONYMS_KEY + ": set (.*)$")
 def backronymsSetWord(message,word):
-    global BACKRONYMS_GAME_MODE,BACKRONYMS_PLAYERS,BACKRONYMS_HOST,BACKRONYMS_WORDS,BACKRONYMS_SCORES
+    global BACKRONYMS_GAME_MODE,BACKRONYMS_PLAYERS,BACKRONYMS_HOST,BACKRONYMS_WORDS,BACKRONYMS_SCORES,BACKRONYMS_word
     if uWrap(message) not in BACKRONYMS_SCORES:
         backSend(message,"Sorry, but you are not a registered player.")
         return
     if uWrap(message) == BACKRONYMS_HOST and BACKRONYMS_GAME_MODE == 2:
-        backSend(message,"Alright then! " + word + " is the word! Players, send in your answers with `" +
-        BACKRONYMS_KEY + ": set ANSWER`!") # Consider adding ability to reset word?
+        BACKRONYMS_word = word
+        backSend(message,"Alright then! " + word + " is the word! " +
+                ', '.join(zUp(BACKRONYMS_SCORES)) +
+                ", send in your answers with `" +
+                BACKRONYMS_KEY + ": set ANSWER`!") # Consider adding ability to reset word?
         BACKRONYMS_GAME_MODE = 3
     elif BACKRONYMS_GAME_MODE == 2:
         backSend(message,"You may not send an answer until the host has picked a word, sorry!")
@@ -840,6 +858,13 @@ def backronymsSetWord(message,word):
     else:
         backSend(message,"This is neither the time to specify a word or to send in an answer! C'mon!")
 ###
+@listen_to("^" + BACKRONYMS_KEY + ": get word$",re.IGNORECASE)
+def backronymsGetWord(message):
+    if BACKRONYMS_word:
+        backSend(message,"The current word is: \"" + BACKRONYMS_word + "\".")
+    else:
+        backSend(message,"There is no word set at this time.")
+###
 @listen_to("^" + BACKRONYMS_KEY + ": get answers$",re.IGNORECASE)
 def backronymsGetAnswers(message):
     if BACKRONYMS_WORDS:
@@ -853,7 +878,7 @@ def backronymsGetAnswers(message):
 ###
 @listen_to("^" + BACKRONYMS_KEY + ": pick (.*)$",re.IGNORECASE)
 def backronymsPickWinner(message,winner):
-    global BACKRONYMS_GAME_MODE,BACKRONYMS_HOST,BACKRONYMS_WORDS,BACKRONYMS_SCORES,BACKRONYMS_WAITING
+    global BACKRONYMS_GAME_MODE,BACKRONYMS_HOST,BACKRONYMS_WORDS,BACKRONYMS_SCORES,BACKRONYMS_WAITING,BACKRONYMS_word
     if uWrap(message) == BACKRONYMS_HOST:
         if BACKRONYMS_GAME_MODE != 4:
             backSend(message,"It's not time to pick a winner yet, silly!")
@@ -875,6 +900,7 @@ def backronymsPickWinner(message,winner):
                     str(score))
             BACKRONYMS_GAME_MODE = 2
             BACKRONYMS_WORDS = {}
+            BACKRONYMS_word = ""
             if winner in zUp(BACKRONYMS_SCORES):
                 BACKRONYMS_HOST = winner
                 backSend(message,winner + ": You are now the host for this next round! Type `"+ 
@@ -1004,6 +1030,8 @@ def backronymsHelp(message):
 "game on" -- Starts the game once players have been registered. Only usable by the host pre-game.
 "set WORD/Answer" -- When used as the host, specifies the word for this round. When used as another player, locks in your answer for this round.
 "get answers" -- Provides all answers given this round.
+"get word" -- Provides the word that has been picked this round.
+"nudge players" -- Pings the players who have yet to provide an answer this round. Only usable by the host.
 "pick @user" -- Picks the winner for this round.
 "me next" -- Adds you to the waiting list for the next round, if you aren't in the game yet.
 "drop out" -- Removes you from the game, but saves your score. You can come back later with "me next".
