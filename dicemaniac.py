@@ -716,41 +716,92 @@ def roll(message):
 BACKRONYMS_GAME_MODE = 0
 # host is to specify the person who is hosting the game.
 BACKRONYMS_HOST = None
-# players is a list of players as mentions
-BACKRONYMS_PLAYERS = []
 # waiting is a list of players who want to join next round
 BACKRONYMS_WAITING = []
 # words is a list of players and their answers
 BACKRONYMS_WORDS = {}
-# scores is a list of the scores of all players. NOTE: in the process of changing to NOT use PLAYERS variable
-#  NOTE: scores are changed to negative if the person is not playing. a score of 0 is changed to None when inactive.
+# scores are changed to negative if the person is not playing. a score of 0 is changed to None when inactive.
 BACKRONYMS_SCORES = {}
 # key is the keyword to trigger backronyms commands
 BACKRONYMS_KEY = "bk"
 # WORD is the word being used as the point for backronyms
-BACKRONYTMS_word = ""
+BACKRONYMS_word = ""
+# family is a boolean determining if the Backronyms bot is family-friendly.
+BACKRONYMS_FAMILY = True
+###
+### General functions.
+def backronymsDeactivatePlayer(player):
+    global BACKRONYMS_SCORES
+    if player in BACKRONYMS_SCORES:
+        if BACKRONYMS_SCORES[player] == 0:
+            BACKRONYMS_SCORES[player] = None
+        elif BACKRONYMS_SCORES[player] > 0:
+            BACKRONYMS_SCORES[player] = 0 - BACKRONYMS_SCORES[player]
+        else:
+            return 1
+        return BACKRONYMS_SCORES[player]
+    else:
+        return 0
+#
+def backronymsActivatePlayer(player):
+    global BACKRONYMS_SCORES
+    if player in BACKRONYMS_SCORES:
+        if BACKRONYMS_SCORES[player] == None:
+            BACKRONYMS_SCORES[player] = 0
+        elif BACKRONYMS_SCORES[player] < 0:
+            BACKRONYMS_SCORES[player] = 0 - BACKRONYMS_SCORES[player]
+        else:
+            return -1
+        return BACKRONYMS_SCORES[player]
+    else:
+        BACKRONYMS_SCORES[player] = 0
+        return None
+#
+def backronymsEndGame():
+    global BACKRONYMS_SCORES,BACKRONYMS_GAME_MODE,BACKRONYMS_HOST,BACKRONYMS_WAITING,BACKRONYMS_word,BACKRONYMS_WORDS
+    BACKRONYMS_GAME_MODE = 0
+    BACKRONYMS_HOST = None
+    BACKRONYMS_WAITING = []
+    BACKRONYMS_word = ""
+    BACKRONYMS_WORDS = {}
+    for i in zUp(BACKRONYMS_SCORES):
+        backronymsDeactivatePlayer(i)
 ###
 @listen_to("^" + BACKRONYMS_KEY + ": get ready!$",re.IGNORECASE)
 def backronymsStart(message):
-    if isAdmin(message,CONTROLLERS):
-        global BACKRONYMS_GAME_MODE,BACKRONYMS_HOST,BACKRONYMS_PLAYERS,BACKRONYMS_SCORES
-        if not BACKRONYMS_GAME_MODE:
-            BACKRONYMS_GAME_MODE = 1
-            BACKRONYMS_HOST = uWrap(message)
-            backSend(message,"Who's ready for a game of BACKRONYMS!\nLet's see a show of hands! Say `" +
-                    BACKRONYMS_KEY + ": I'm in` if you want to play!\nIf you want to see a list of commands, type `"+
-                    BACKRONYMS_KEY + ": help`!")
-#            if uWrap(message) not in BACKRONYMS_PLAYERS:
-            if uWrap(message) not in BACKRONYMS_SCORES:
-                #BACKRONYMS_PLAYERS.append(uWrap(message))
-                BACKRONYMS_SCORES[uWrap(message)] = 0
-        elif BACKRONYMS_GAME_MODE == 1:
-            backSend(message,"We're still prepping for a game! No need to start another one! Gosh!")
-        else:
-            backSend(message,"There's already a game underway! Gosh!")
+    global BACKRONYMS_GAME_MODE,BACKRONYMS_HOST,BACKRONYMS_SCORES
+    global DEBUG_LOG
+    DEBUG_LOG = DEBUG_LOG + 1
+    print (str(DEBUG_LOG) + ": " +
+            "Trying to start game." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
+    if BACKRONYMS_GAME_MODE == 0:
+        BACKRONYMS_GAME_MODE = 1
+        BACKRONYMS_HOST = uWrap(message)
+        backronymsActivatePlayer(uWrap(message))
+        backSend(message,"Who's ready for a game of BACKRONYMS" + 
+                (", bitches" if not BACKRONYMS_FAMILY else "") + 
+                "!\nLet's see a show of " + 
+                ("fuckin' " if not BACKRONYMS_FAMILY else "") + 
+                "hands! Say `" +
+                BACKRONYMS_KEY + ": I'm in` if you want to play!\nIf you want to see a list of commands, type `"+
+                BACKRONYMS_KEY + ": help`!" +
+                (" Hopefully you're not stupid enough to need it!" if not BACKRONYMS_FAMILY else ""))
+    elif BACKRONYMS_GAME_MODE == 1:
+        backSend(message,"We're still prepping for a game! No need to start another one! Gosh!")
+    else:
+        backSend(message,"There's already a game underway" + 
+                (", dipshit!" if not BACKRONYMS_FAMILY else "! Gosh!"))
 ###
 @listen_to('^' + BACKRONYMS_KEY + ': get players$',re.IGNORECASE)
 def backronymsGetPlayers(message):
+    global DEBUG_LOG
+    DEBUG_LOG = DEBUG_LOG + 1
+    print (str(DEBUG_LOG) + ": " +
+            "Trying to get players." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
     if uWrap(message) == BACKRONYMS_HOST:
         if BACKRONYMS_SCORES:
             retVal = ', '.join(list(BACKRONYMS_SCORES.keys()))
@@ -766,18 +817,31 @@ def backronymsGetPlayers(message):
 ###
 @listen_to("^" + BACKRONYMS_KEY + ": nudge players$",re.IGNORECASE)
 def backronymsNudge(message):
+    global DEBUG_LOG
+    DEBUG_LOG = DEBUG_LOG + 1
+    print (str(DEBUG_LOG) + ": " +
+            "Trying to nudge players." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
     if uWrap(message) == BACKRONYMS_HOST and BACKRONYMS_GAME_MODE == 3:
         resLis = []
         for i in zUp(BACKRONYMS_SCORES):
             if i not in BACKRONYMS_WORDS:
                 resLis.append(i)
-        backSend(message,', '.join(resLis) + ": you have yet to enter your words for this round! If you've forgotten the word, you can get it with `" +
-                BACKROYNMS_KEY + ": get word`!")
+        backSend(message,', '.join(resLis) + 
+                (": for fuck's sake hurry it up and put in your goddamn answer! It's probably going to be shit anyway!" if not BACKRONYMS_FAMILY else ": you have yet to enter your words for this round! If you've forgotten the word, you can get it with `" +
+                BACKRONYMS_KEY + ": get word`!"))
     elif uWrap(message) == BACKRONYMS_HOST:
-        backSend(message,"You can only nudge the other players when you are waiting for them to enter their answers!")
+        backSend(message,( "Calm the fuck down sparky, it's not time for that!" if not BACKRONYMS_FAMILY else "You can only nudge the other players when you are waiting for them to enter their answers!"))
 ###
 @listen_to("^" + BACKRONYMS_KEY + ": get score$",re.IGNORECASE)
 def backronymsGetScore(message):
+    global DEBUG_LOG
+    DEBUG_LOG = DEBUG_LOG + 1
+    print (str(DEBUG_LOG) + ": " +
+            "Trying to get score." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
     if uWrap(message) in BACKRONYMS_SCORES:
         if BACKRONYMS_SCORES[uWrap(message)] == None:
             score = str(0) + ". You are currently listed as inactive"
@@ -789,34 +853,45 @@ def backronymsGetScore(message):
 ###
 @listen_to("^" + BACKRONYMS_KEY + ": I'?m in$",re.IGNORECASE)
 def backronymsSignUp(message):
-    global BACKRONYMS_PLAYERS,BACKRONYMS_SCORES,BACKRONYMS_GAME_MODE
-    #if BACKRONYMS_GAME_MODE == 1 and uWrap(message) not in BACKRONYMS_PLAYERS:
-    if BACKRONYMS_GAME_MODE == 1 and (uWrap(message) not in BACKRONYMS_SCORES or BACKRONYMS_SCORES[uWrap(message)] == None):
-        #BACKRONYMS_PLAYERS.append(uWrap(message))
-        BACKRONYMS_SCORES[uWrap(message)] = 0
-        backSend(message,"You have been added to the game, " + uWrap(message) + "!")
+    global BACKRONYMS_SCORES,BACKRONYMS_GAME_MODE
+    global DEBUG_LOG
+    DEBUG_LOG = DEBUG_LOG + 1
+    print (str(DEBUG_LOG) + ": " +
+            "Trying to sign up." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
+    if BACKRONYMS_GAME_MODE == 1 and uWrap(message) not in zUp(BACKRONYMS_SCORES):
+        backronymsActivatePlayer(uWrap(message))
+        backSend(message,"You have been added to the game, " + uWrap(message) + "!" +
+                (" Try not to fuck it up, idiot!"if not BACKRONYMS_FAMILY else "") )
     elif BACKRONYMS_GAME_MODE > 1:
-        backSend(message,"The game's already started, silly!")
-    elif BACKRONYMS_GAME_MODE == 1 and uWrap(winner) in zUp(BACKRONYMS_SCORES):
-        backSend(message,"You're already in the game, silly!")
-    elif BACKRONYMS_GAME_MODE == 1:
-        BACKRONYMS_SCORES[uWrap(message)] = 0 - BACKRONYMS_SCORES[uWrap(message)]
-        backSend(message,"You have been added to the game, " + uWrap(message) + "!")
+        backronymsJoinQueue(message)
+    elif uWrap(message) in zUp(BACKRONYMS_SCORES):
+        backSend(message,"You're already in the game, " + 
+                ("fuckstick!" if not BACKRONYMS_FAMILY else "silly!"))
 ###
 @listen_to("^" + BACKRONYMS_KEY + ": game on$")
 def backronymsStartGame(message):
-    global BACKRONYMS_GAME_MODE,BACKRONYMS_PLAYERS,BACKRONYMS_HOST,BACKRONYMS_SCORES,BACKRONYMS_word
+    global BACKRONYMS_GAME_MODE,BACKRONYMS_HOST,BACKRONYMS_SCORES,BACKRONYMS_word
+    global DEBUG_LOG
+    DEBUG_LOG = DEBUG_LOG + 1
+    print (str(DEBUG_LOG) + ": " +
+            "Trying to start game." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
     if uWrap(message) == BACKRONYMS_HOST and BACKRONYMS_GAME_MODE == 1:
-#        if len(BACKRONYMS_PLAYERS) < 2:
-        if len(BACKRONYMS_SCORES) < 2:
-            backSend(message,"You can't just play Backronyms with only one person! Gosh!")
+        if len(zUp(BACKRONYMS_SCORES)) < 2:
+            backSend(message,"You can't just play Backronyms with only one person! " + 
+                    ("How thick are you?!" if not BACKRONYMS_FAMILY else "Gosh!"))
         else:
             BACKRONYMS_GAME_MODE = 2
-#            pList = ', '.join(BACKRONYMS_PLAYERS)
-            pList = ', '.join(list(BACKRONYMS_SCORES.keys()))
+            pList = ', '.join(zUp(BACKRONYMS_SCORES))
             BACKRONYMS_word = ""
-            backSend(message,"And away we go! " + pList + ", we are starting the game! The host for the first round is: " + BACKRONYMS_HOST + "! Start us off with `" +
-                    BACKRONYMS_KEY + ": set WORD`!")
+            backSend(message,("About fuckin' time! " if not BACKRONYMS_FAMILY else "And away we go! ") + pList + ", we are starting the game" + 
+                    (" so turn your god damn brains on!" if not BACKRONYMS_FAMILY else "!") + 
+                    " The host for the first round is: " + BACKRONYMS_HOST + "! Start us off with `" +
+                    BACKRONYMS_KEY + ": set WORD`" + 
+                    (", and try not to pick something completely retarded!" if not BACKRONYMS_FAMILY else "!") )
     else:
         print("User is: " + uWrap(message))
         if BACKRONYMS_HOST:
@@ -825,41 +900,63 @@ def backronymsStartGame(message):
 ###
 @listen_to("^" + BACKRONYMS_KEY + ": set (.*)$")
 def backronymsSetWord(message,word):
-    global BACKRONYMS_GAME_MODE,BACKRONYMS_PLAYERS,BACKRONYMS_HOST,BACKRONYMS_WORDS,BACKRONYMS_SCORES,BACKRONYMS_word
+    global BACKRONYMS_GAME_MODE,BACKRONYMS_HOST,BACKRONYMS_WORDS,BACKRONYMS_SCORES,BACKRONYMS_word
+    global DEBUG_LOG
+    DEBUG_LOG = DEBUG_LOG + 1
+    print (str(DEBUG_LOG) + ": " +
+            "Trying to set word." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
     if uWrap(message) not in BACKRONYMS_SCORES:
-        backSend(message,"Sorry, but you are not a registered player.")
+        backSend(message,"Uh, you aren't even registered, fucktard." if not BACKRONYMS_FAMILY else "Sorry, but you are not a registered player.")
         return
     if uWrap(message) == BACKRONYMS_HOST and BACKRONYMS_GAME_MODE == 2:
         BACKRONYMS_word = word
-        backSend(message,"Alright then! " + word + " is the word! " +
+        backSend(message,"Alright " + 
+                (" losers, " if not BACKRONYMS_FAMILY else "then! ") + word + " is the word! " +
                 ', '.join(zUp(BACKRONYMS_SCORES)) +
                 ", send in your answers with `" +
-                BACKRONYMS_KEY + ": set ANSWER`!") # Consider adding ability to reset word?
+                BACKRONYMS_KEY + ": set ANSWER`" + 
+                (" and for the love of god keep it interesting, you boring fucks." if not BACKRONYMS_FAMILY else "!")) # Consider adding ability to reset word?
         BACKRONYMS_GAME_MODE = 3
     elif BACKRONYMS_GAME_MODE == 2:
-        backSend(message,"You may not send an answer until the host has picked a word, sorry!")
+        backSend(message,"Real fuckin' smart, guy. There isn't even a word to answer to yet. Or did you think you were the host or something? Jesus." if not BACKRONYMS_FAMILY else "You may not send an answer until the host has picked a word, sorry!")
     elif uWrap(message) == BACKRONYMS_HOST and BACKRONYMS_GAME_MODE == 3:
-        backSend(message,"It is time for the others to post their answers, gosh!")
+        backSend(message,"Yeah, you already put a god damn word in, genius. Maybe wait a couple fucking minutes for the answers to come in?" if not BACKRONYMS_FAMILY else "It is time for the others to post their answers, gosh!")
     elif BACKRONYMS_GAME_MODE == 3 and uWrap(message) not in BACKRONYMS_WORDS:
         BACKRONYMS_WORDS[uWrap(message)] = word
-        backSend(message,uWrap(message) + ": Your answer has been received!")
+        backSend(message,uWrap(message) + ": Your answer has been received!" +
+                (" Yeugh." if not BACKRONYMS_FAMILY else ""))
         done = True
-#        for i in BACKRONYMS_PLAYERS:
         for i in zUp(BACKRONYMS_SCORES):
             if not i == BACKRONYMS_HOST and not i in BACKRONYMS_WORDS:
                 done = False
         if done:
-            backSend(message,"All answers have been put in! " + BACKRONYMS_HOST + ", it is time to pick a winner! Type `" +
-            BACKRONYMS_KEY + ": get answers` to see a list of all answers and who picked them. To pick a winner, type `" +
-            BACKRONYMS_KEY + ": pick @user`!")
+            backSend(message,"All answers have been put in! " + 
+                    ("If you can call them that." if not BACKRONYMS_FAMILY else "") +
+                    BACKRONYMS_HOST + ", it is time to pick a" + 
+                    (", ahem, _winner_." if not BACKRONYMS_FAMILY else "winner!") + " Type `" +
+            BACKRONYMS_KEY + ": get answers` to see a list of all answers and who picked them" + 
+            (", since you probably fucking forgot already" if not BACKRONYMS_FAMILY else "") + 
+            ". To pick a winner, type `" +
+            BACKRONYMS_KEY + ": pick @user`" + 
+            (". Good luck, with these answers." if not BACKRONYMS_FAMILY else "!"))
             BACKRONYMS_GAME_MODE = 4
     elif BACKRONYMS_GAME_MODE == 3:
-        backSend(message,"You've already sent in your answer! Too late to change it now!") # maybe add in a feature to let them change it?
+        backSend(message,"You've already sent in your answer! Too late to change it now" + 
+            (", cockmunch!" if not BACKRONYMS_FAMILY else "!")) # maybe add in a feature to let them change it?
     else:
-        backSend(message,"This is neither the time to specify a word or to send in an answer! C'mon!")
+        backSend(message,"This is neither the time to specify a word nor to send in an answer! " + 
+            ("Jesus Christ dude, what the fuck?!" if not BACKRONYMS_FAMILY else "C'mon!"))
 ###
 @listen_to("^" + BACKRONYMS_KEY + ": get word$",re.IGNORECASE)
 def backronymsGetWord(message):
+    global DEBUG_LOG
+    DEBUG_LOG = DEBUG_LOG + 1
+    print (str(DEBUG_LOG) + ": " +
+            "Trying to get word." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
     if BACKRONYMS_word:
         backSend(message,"The current word is: \"" + BACKRONYMS_word + "\".")
     else:
@@ -867,6 +964,12 @@ def backronymsGetWord(message):
 ###
 @listen_to("^" + BACKRONYMS_KEY + ": get answers$",re.IGNORECASE)
 def backronymsGetAnswers(message):
+    global DEBUG_LOG
+    DEBUG_LOG = DEBUG_LOG + 1
+    print (str(DEBUG_LOG) + ": " +
+            "Trying to get answers." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
     if BACKRONYMS_WORDS:
         answer = "```"
         for i in BACKRONYMS_WORDS:
@@ -874,18 +977,25 @@ def backronymsGetAnswers(message):
         answer = answer + "```"
         backSend(message,answer)
     else:
-        backSend(message,"There are no stored answers at this time.")
+        backSend(message,"There are no stored answers at this time." +
+            (" What, did you completely forget what the fuck was going on or something?" if not BACKRONYMS_FAMILY else ""))
 ###
 @listen_to("^" + BACKRONYMS_KEY + ": pick (.*)$",re.IGNORECASE)
 def backronymsPickWinner(message,winner):
     global BACKRONYMS_GAME_MODE,BACKRONYMS_HOST,BACKRONYMS_WORDS,BACKRONYMS_SCORES,BACKRONYMS_WAITING,BACKRONYMS_word
+    global DEBUG_LOG
+    DEBUG_LOG = DEBUG_LOG + 1
+    print (str(DEBUG_LOG) + ": " +
+            "Trying to pick winner." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
     if uWrap(message) == BACKRONYMS_HOST:
         if BACKRONYMS_GAME_MODE != 4:
-            backSend(message,"It's not time to pick a winner yet, silly!")
+            backSend(message,"Oh yeah? You're just gonna pick a winner right now, huh? It's not even close to the right time for that, you thick-skulled neanderthal!" if not BACKRONYMS_FAMILY else "It's not time to pick a winner yet, silly!")
         elif winner not in BACKRONYMS_SCORES:
-            backSend(message,"That person isn't even playing! C'mon!")
+            backSend(message,"Oh sure, let's just pick fucking' *anyone* to be a winner now, right? Doesn't matter if they're playing! Try again, douchebag." if not BACKRONYMS_FAMILY else "That person isn't even playing! C'mon!")
         elif uWrap(message) == winner:
-            backSend(message,"You can't pick yourself, you goof!")
+            backSend(message,"Not on my watch, you ball-gargling cumdumpster. Try the fuck again." if not BACKRONYMS_FAMILY else "You can't pick yourself, you goof!")
         else:
             if winner in zUp(BACKRONYMS_SCORES):
                 score = BACKRONYMS_SCORES[winner] = BACKRONYMS_SCORES[winner] + 1
@@ -897,130 +1007,172 @@ def backronymsPickWinner(message,winner):
                 score = 0 - BACKRONYMS_SCORES[winner]
             backSend(message,winner + ": Congratulations! Your entry, \"" + 
                     BACKRONYMS_WORDS[winner] + "\", is the winner! +1 point for you, for a total of %s!" %
-                    str(score))
+                    str(score) + 
+                    ("Don't let it go to your head though, assface." if not BACKRONYMS_FAMILY else ""))
             BACKRONYMS_GAME_MODE = 2
             BACKRONYMS_WORDS = {}
             BACKRONYMS_word = ""
             if winner in zUp(BACKRONYMS_SCORES):
                 BACKRONYMS_HOST = winner
-                backSend(message,winner + ": You are now the host for this next round! Type `"+ 
+                backSend(message,winner + ": You are now the host for this next round! " + 
+                        ("And I just cannot *WAIT* to see how you're going to fuck this up. " if not BACKRONYMS_FAMILY else "") + "Type `"+ 
                         BACKRONYMS_KEY + ": set WORD` to pick your word for this round!")
             else:
-                backSend(message,uWrap(message) + ", you will reamin the host. Type `" +
+                backSend(message,uWrap(message) + ", you will reamin the host. " + 
+                        ("Oh joy of all fucking joys. " if not BACKRONYMS_FAMILY else "") + "Type `" +
                         BACKRONYMS_KEY + ": set WORD` to pick your word for this round!")
             if BACKRONYMS_WAITING:
                 for i in BACKRONYMS_WAITING:
-                    if i not in BACKRONYMS_SCORES or not BACKRONYMS_SCORES[i]:
-                        BACKRONYMS_SCORES[i] = 0
-                    else:
-                        BACKRONYMS_SCORES[i] = 0 - BACKRONYMS_SCORES[i]
-                BACKRONYMS_WAITING = []
+                    backronymsActivatePlayer(i)
                 backSend(message,"Those of you in the waiting list: " +
                         ', '.join(BACKRONYMS_WAITING) + 
-                        " have been added to the game! You may enter your answers once the word has been picked!")
+                        " have been added to the game! " + 
+                        ("Your deaths will be swift. " if not BACKRONYMS_FAMILY else "") + "You may enter your answers once the word has been picked!")
+                BACKRONYMS_WAITING = []
     else:
-        backSend(message,"You're not the host, silly!")
+        backSend(message,"If that's what it takes to make you feel special, sure. Just kidding; fuck you." if not BACKRONYMS_FAMILY else "You're not the host, silly!")
 ###
 @listen_to("^" + BACKRONYMS_KEY + ": me next$")
 def backronymsJoinQueue(message):
     global BACKRONYMS_WAITING,BACKRONYMS_SCORES
+    global DEBUG_LOG
+    DEBUG_LOG = DEBUG_LOG + 1
+    print (str(DEBUG_LOG) + ": " +
+            "Trying to join queue." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
     if uWrap(message) in BACKRONYMS_WAITING:
-        backSend(message,"You're already in the queue!")
+        backSend(message,"You're already in the damn queue, how did you already forget? Did you get thrown around the back of a moving truck as an infant?" if not BACKRONYMS_FAMILY else "You're already in the queue!")
     elif BACKRONYMS_GAME_MODE == 1:
-        backSend(message,"We're still in prep mode! You can join the game by typing `" +
-                BACKRONYMS_KEY + ": I'm in`!")
+        backronymsSignUp(message)
     elif BACKRONYMS_GAME_MODE == 0:
-        backSend(message,"There isn't a game in progress!")
+        backSend(message,"I'm trying to take a nap over here, for the love of god. Bother somebody else." if not BACKRONYMS_FAMILY else "There isn't a game in progress!")
     elif uWrap(message) in zUp(BACKRONYMS_SCORES):
-        backSend(message,"You're already playing! C'mon!")
+        backSend(message,"Do I really need to tell you why this is stupid? Did you seriously forget you're already playing? God damn I need a break from this bullshit." if not BACKRONYMS_FAMILY else "You're already playing! C'mon!")
     else:
         BACKRONYMS_WAITING.append(uWrap(message))
-        backSend(message,uWrap(message) + ", you have been added to the queue. See you next round!")
+        backSend(message,uWrap(message) + ", you have been added to the queue. See you next round" + 
+                (" -- if you live that long." if not BACKRONYMS_FAMILY else "!"))
 ###
 @listen_to("^" + BACKRONYMS_KEY + ": drop out$")
 def backronymsDropOut(message,player=None):
     global BACKRONYMS_WAITING,BACKRONYMS_SCORES,BACKRONYMS_WORDS,BACKRONYMS_HOST,BACKRONYMS_GAME_MODE
+    global DEBUG_LOG
+    DEBUG_LOG = DEBUG_LOG + 1
+    print (str(DEBUG_LOG) + ": " +
+            "Trying to drop out." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
     if not player:
         if uWrap(message) == BACKRONYMS_HOST:
-            backSend(message,"You're the host! At least pick a winner first!")
+#            backSend(message,"You're the host! At least pick a winner first!")
+            # instead we're kicking everyone out if it's the host.
+            backronymsDeactivatePlayer(uWrap(message))
+            if len(zUp(BACKRONYMS_SCORES)) > 0:
+                backSend(message,', '.join(zUp(BACKRONYMS_SCORES)) +
+                        ": as the host has left, the game has ended. Your scores have been saved." +
+                        (" Sorry to have wasted your precious time." if not BACKRONYMS_FAMILY else ""))
+            else:
+                backSend(message,"Oh sure, just wake me up for nothing. Thanks a whole fucking lot, dickweed." if not BACKRONYMS_FAMILY else "Well nevermind then. See you next time!")
+            backronymsEndGame()
+            return
         elif uWrap(message) in BACKRONYMS_WAITING:
             BACKRONYMS_WAITING.remove(uWrap(message))
             backSend(message,"You have been removed from the waiting list.")
         elif uWrap(message) in zUp(BACKRONYMS_SCORES):
-            if BACKRONYMS_SCORES[uWrap(message)] == 0:
-                BACKRONYMS_SCORES[uWrap(message)] = None
-            else:
-                BACKRONYMS_SCORES[uWrap(message)] = 0 - BACKRONYMS_SCORES[uWrap(message)]
-            backSend(message,"You have been removed from the active list. Your score has been saved!")
+            backronymsDeactivatePlayer(uWrap(message))
+            backSend(message,"You have been removed from the active list. Your score has been saved!" + 
+                    (" Your soul won't be, though." if not BACKRONYMS_FAMILY else "" ))
             if len(zUp(BACKRONYMS_SCORES)) < 2:
-                backSend(message,"There are now too few people to play right now. The game will be ended, but your scores will be saved! Play again some time!")
-                if BACKRONYMS_SCORES[BACKRONYMS_HOST] == 0:
-                    BACKRONYMS_SCORES[BACKRONYMS_HOST] = None
-                else:
-                    BACKRONYMS_SCORES[BACKRONYMS_HOST] = 0 - BACKRONYMS_SCORES[BACKRONYMS_HOST]
-                BACKRONYMS_GAME_MODE = 0
-                BACKRONYMS_HOST = None
-                BACKRONYMS_WAITING = [] # TODO: if there are waiting players maybe just start another game?
+                backSend(message,"Great, everyone's left. Just great. Whatever. I'm going to sleep. See if you fucks can leave me be." if not BACKRONYMS_FAMILY else "There are now too few people to play right now. The game will be ended, but your scores will be saved! Play again some time!")
+                backronymsEndGame()
                 return
             done = True
             for i in zUp(BACKRONYMS_SCORES):
                 if i not in BACKRONYMS_WORDS:
                     done = False
             if done:
-                backSend(message,"With this dropping-out, all answers have been put in! " +
+                backSend(message,"With this dropping-out, all " + 
+                        ("sorry excuses for " if not BACKRONYMS_FAMILY else "") + "answers have been put in!\n" +
                         BACKRONYMS_HOST + ", it is time to pick a winner! Type `" +
-                        BACKRONYMS_KEY + ": get answers` to see a list of all answers and who picked them. To pick a winner, type `" +
-                        BACKRONYMS_KEY + ": pick @user`!")
+                        BACKRONYMS_KEY + ": get answers` to see a list of all answers " + 
+                        ("(since your fat stupid head probably already forgot) " if not BACKRONYMS_FAMILY else "") + "and who picked them. To pick a winner, type `" +
+                        BACKRONYMS_KEY + ": pick @user`!" +
+                        (" Using the word 'winner' lightly, of course." if not BACKRONYMS_FAMILY else ""))
                 BACKRONYMS_GAME_MODE = 4
         else:
-            backSend(message,"You aren't on either the active or the waiting list. No dropping out needed!")
+            backSend(message,"Yeah, you're not even playing, dipshit. God." if not BACKRONYMS_FAMILY else "You aren't on either the active or the waiting list. No dropping out needed!")
     # targeted kicking section"
     else:
         if player == uWrap(message):
-            backSend(message,"You can't drop out when you're the host, and you can't target yourself. You goof!")
+            backSend(message,"I know words must be terribly confusing for you, given how much of a blithering idiot you are, but targeting yourself makes zero sense. Got it?" if not BACKRONYMS_FAMILY else "You can't target yourself. You goof!")
         elif player in BACKRONYMS_WAITING:
             BACKRONYMS_WAITING.remove(player)
-            backSend(message,"Ok, %s has been removed from the waiting list." % player)
+            backSend(message,"%s has been graciously freed from this miserable 'game' before they could suffer. How gracious of you." % player if not BACKRONYMS_FAMILY else "Ok, %s has been removed from the waiting list." % player)
         elif player in zUp(BACKRONYMS_SCORES):
-            if BACKRONYMS_SCORES[player] == 0:
-                BACKRONYMS_SCORES[player] = None
-            else:
-                BACKRONYMS_SCORES[player] = 0 - BACKRONYMS_SCORES[player]
-            backSend(message,player + " has been removed from the active list, and their score has been saved.")
+            backronymsDeactivatePlayer(player)
+            backSend(message,player + " has been removed from the active list, and their score has been saved." + 
+                    (" It's far too late for their soul, however." if not BACKRONYMS_FAMILY else  ""))
             if len(zUp(BACKRONYMS_SCORES)) < 2:
-                backSend(message,"There are now too few people to play right now. The game will be ended, but your scores will be saved! Play again some time!")
-                if BACKRONYMS_SCORES[BACKRONYMS_HOST] == 0:
-                    BACKRONYMS_SCORES[BACKRONYMS_HOST] = None
-                else:
-                    BACKRONYMS_SCORES[BACKRONYMS_HOST] = 0 - BACKRONYMS_SCORES[BACKRONYMS_HOST]
-                BACKRONYMS_GAME_MODE = 0
-                BACKRONYMS_HOST = None
-                BACKRONYMS_WAITING = [] # TODO: if there are waiting players maybe just start another game?
+                backSend(message,"Great. Now there aren't enough people to even play. Thanks for wasting my fucking time." if not BACKRONYMS_FAMILY else "There are now too few people to play right now. The game will be ended, but your scores will be saved! Play again some time!")
+                backronymsEndGame()
                 return
             done = True
             for i in zUp(BACKRONYMS_SCORES):
                 if i not in BACKRONYMS_WORDS:
                     done = False
             if done:
-                backSend(message,"With this kicking-out, all answers have been put in! " +
-                        BACKRONYMS_HOST + ", it is time to pick a winner! Type `" +
-                        BACKRONYMS_KEY + ": get answers` to see a list of all answers and who picked them. To pick a winner, type `" +
+                backSend(message,"With this " + 
+                        ("sadly bloodless " if not BACKRONYMS_FAMILY else "") + 
+                        "kicking-out, all answers have been put in! " +
+                        BACKRONYMS_HOST + ", it is time to pick a " + 
+                        ("~sucker~ " if not BACKRONYMS_FAMILY else "") + 
+                        "winner! Type `" +
+                        BACKRONYMS_KEY + ": get answers` to see a list of all answers" + 
+                        (" -- if you can even call them that --" if not BACKRONYMS_FAMILY else "") + 
+                        " and who picked them. To pick a winner, type `" +
                         BACKRONYMS_KEY + ": pick @user`!")
                 BACKRONYMS_GAME_MODE = 4
         else:
-            backSend(message,player + " isn't on either the active or the waiting list. No kicking out needed!")
+            backSend(message,"Sure, that makes perfect sense. Kick the person not even playing. God you people suck." if not BACKRONYMS_FAMILY else player + " isn't on either the active or the waiting list. No kicking out needed!")
 
 ### For the kicking-out function, we call the Drop-Out function because it uses
 ###  a lot of the same code -- but with the player flag set.
 @listen_to("^" + BACKRONYMS_KEY + ": kick (.*)$",re.IGNORECASE)
 def backronymsKickUser(message,player):
+    global DEBUG_LOG
+    DEBUG_LOG = DEBUG_LOG + 1
+    print (str(DEBUG_LOG) + ": " +
+            "Trying to kick player." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
     if uWrap(message) == BACKRONYMS_HOST:
         backronymsDropOut(message,player)
     else:
-        backSend(message,"You can only kick out people when you're the host!")
+        backSend(message,"As much as I'd like to be rid of every single one of you, only the host can kick people, shit-for-brains." if not BACKRONYMS_FAMILY else "You can only kick out people when you're the host!")
+### Functions for enabling and disabling family-friendly mode.
+@listen_to("^" + BACKRONYMS_KEY + ": calm down$")
+def backronymsFamilyToggle(message,on=True):
+    global BACKRONYMS_FAMILY
+    if on:
+        backSend(message,"Alright, I'm sorry. I definitely got carried away there. I hope we can all have fun together!")
+        BACKRONYMS_FAMILY = True
+    else:
+        backSend(message,"Fuck you too, bitch!")
+        BACKRONYMS_FAMILY = False
+###
+@listen_to("^" + BACKRONYMS_KEY + ": fuck you$")
+def backronymsFamilyNope(message):
+    backronymsFamilyToggle(message,False)
 ###
 @listen_to("^" + BACKRONYMS_KEY + ": help$")
 def backronymsHelp(message):
+    global DEBUG_LOG
+    DEBUG_LOG = DEBUG_LOG + 1
+    print (str(DEBUG_LOG) + ": " +
+            "Trying to get help." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
     backSend(message,"The following commands can be given by typing `" +
             BACKRONYMS_KEY + ": COMMAND`. The list of commands is as follows:" +
             """```"get ready!" -- Starts a game of Backronyms. Only usable by admin users.
@@ -1036,6 +1188,8 @@ def backronymsHelp(message):
 "me next" -- Adds you to the waiting list for the next round, if you aren't in the game yet.
 "drop out" -- Removes you from the game, but saves your score. You can come back later with "me next".
 "kick PLAYER" -- Removes target player from the game, and saves their score. Only usable by the current host.
+"fuck you" -- Disables family-friendly mode.
+"calm down" -- Enables family-friendly mode.
 "help" -- Print this help message.```""")
 ######
 ##########
@@ -1055,6 +1209,5 @@ def main():
     bot = Bot()
     bot.run()
 
-# no idea why this is necesary but the docs said to put this here lol
 if __name__ == "__main__":
     main()
