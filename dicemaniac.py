@@ -359,6 +359,7 @@ def getPlayerStats(message,player):
 def getStat(message,player,stat,quiet=False):
     if isAdmin(message,CONTROLLERS) or ALLOW_MADNESS:
         if CURRENT_MODE:
+            global conn
             conn = testdb(conn,c,MYSQL_USER,DB_PASSWORD,MYSQL_DB)
             c.execute("SELECT val FROM settings WHERE mode='%s' AND player='%s' AND pkey='%s'"%
                 (CURRENT_MODE,player,stat))
@@ -400,6 +401,7 @@ def getStat(message,player,stat,quiet=False):
 def setStat(message,player,stat,val):
     if isAdmin(message,CONTROLLERS):
         if CURRENT_MODE:
+            global conn
             conn = testdb(conn,c,MYSQL_USER,DB_PASSWORD,MYSQL_DB)
             status = getStat(message,player,stat,True)
             if status == 0:
@@ -549,7 +551,7 @@ def hi(message):
 
 @listen_to('greetings,? humans?', re.IGNORECASE)
 def beepboop(message):
-    message.reply('BEEP DEPLOY GREETING BOOP HELLO BEEP GREETING DEPLOYED')
+    message.reply('*BEEP* _DEPLOY GREETING_ *BOOP* _HELLO_ *BEEP* _GREETING DEPLOYED_ *BOOP*')
 
 @listen_to('love', re.IGNORECASE)
 def love(message):
