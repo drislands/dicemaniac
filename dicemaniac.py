@@ -828,7 +828,7 @@ def backronymsNudge(message):
     if uWrap(message) == BACKRONYMS_HOST and BACKRONYMS_GAME_MODE == 3:
         resLis = []
         for i in zUp(BACKRONYMS_SCORES):
-            if i not in BACKRONYMS_WORDS:
+            if i not in BACKRONYMS_WORDS and i != BACKRONYMS_HOST:
                 resLis.append(i)
         backSend(message,', '.join(resLis) + 
                 (": for fuck's sake hurry it up and put in your goddamn answer! It's probably going to be shit anyway!" if not BACKRONYMS_FAMILY else ": you have yet to enter your words for this round! If you've forgotten the word, you can get it with `" +
@@ -916,7 +916,7 @@ def backronymsSetWord(message,word):
         BACKRONYMS_word = word
         backSend(message,"Alright " + 
                 (" losers, " if not BACKRONYMS_FAMILY else "then! ") + word + " is the word! " +
-                ', '.join(zUp(BACKRONYMS_SCORES)) +
+                ', '.join([i for i in zUp(BACKRONYMS_SCORES) if i != BACKRONYMS_HOST]) +
                 ", send in your answers with `" +
                 BACKRONYMS_KEY + ": set ANSWER`" + 
                 (" and for the love of god keep it interesting, you boring fucks." if not BACKRONYMS_FAMILY else "!")) # Consider adding ability to reset word?
@@ -1091,7 +1091,7 @@ def backronymsDropOut(message,player=None):
                 return
             done = True
             for i in zUp(BACKRONYMS_SCORES):
-                if i not in BACKRONYMS_WORDS:
+                if i not in BACKRONYMS_WORDS and i != BACKRONYMS_HOST:
                     done = False
             if done:
                 backSend(message,"With this dropping-out, all " + 
