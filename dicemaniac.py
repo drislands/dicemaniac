@@ -104,22 +104,22 @@ def orcSend(message,text):
 #NO_COUNT = 0
 @listen_to('^magic conch.*\?',re.IGNORECASE)
 def magicConch(message):
-    i = random.randint(1,5)
+    i = random.randint(1,100)
     text = ''
     #global NO_COUNT
-    if i == 1:
+    if i < 11:
         text = 'Maybe someday.'
-    elif i == 2:
+    elif i < 31:
         text = 'I don\'t think so.'
-    elif i == 3:
+    elif i < 51:
         #if NO_COUNT < 3:
             text = 'No.'
         #    NO_COUNT += 1
         #else:
         #    text = '_sassily_ No.'
-    elif i == 4:
+    elif i < 91:
         text = 'Yes.'
-    elif i == 5:
+    elif i < 101:
         text = 'Try asking again.'
     else:
         global DEBUG_LOG
@@ -359,7 +359,6 @@ def getPlayerStats(message,player):
 def getStat(message,player,stat,quiet=False):
     if isAdmin(message,CONTROLLERS) or ALLOW_MADNESS:
         if CURRENT_MODE:
-            global conn
             conn = testdb(conn,c,MYSQL_USER,DB_PASSWORD,MYSQL_DB)
             c.execute("SELECT val FROM settings WHERE mode='%s' AND player='%s' AND pkey='%s'"%
                 (CURRENT_MODE,player,stat))
@@ -401,7 +400,6 @@ def getStat(message,player,stat,quiet=False):
 def setStat(message,player,stat,val):
     if isAdmin(message,CONTROLLERS):
         if CURRENT_MODE:
-            global conn
             conn = testdb(conn,c,MYSQL_USER,DB_PASSWORD,MYSQL_DB)
             status = getStat(message,player,stat,True)
             if status == 0:
@@ -551,7 +549,7 @@ def hi(message):
 
 @listen_to('greetings,? humans?', re.IGNORECASE)
 def beepboop(message):
-    message.reply('*BEEP* _DEPLOY GREETING_ *BOOP* _HELLO_ *BEEP* _GREETING DEPLOYED_ *BOOP*')
+    message.reply('BEEP DEPLOY GREETING BOOP HELLO BEEP GREETING DEPLOYED')
 
 @listen_to('love', re.IGNORECASE)
 def love(message):
@@ -774,10 +772,12 @@ def backronymsStart(message):
     global BACKRONYMS_GAME_MODE,BACKRONYMS_HOST,BACKRONYMS_SCORES
     global DEBUG_LOG
     DEBUG_LOG = DEBUG_LOG + 1
+    
     print (str(DEBUG_LOG) + ": " +
-            "Trying to start game." +
-            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
-            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
+            "Trying to sign up." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s.\nActivating player is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES))),uWrap(message)))
+
     if BACKRONYMS_GAME_MODE == 0:
         BACKRONYMS_GAME_MODE = 1
         BACKRONYMS_HOST = uWrap(message)
@@ -800,10 +800,12 @@ def backronymsStart(message):
 def backronymsGetPlayers(message):
     global DEBUG_LOG
     DEBUG_LOG = DEBUG_LOG + 1
+    
     print (str(DEBUG_LOG) + ": " +
-            "Trying to get players." +
-            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
-            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
+            "Trying to sign up." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s.\nActivating player is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES))),uWrap(message)))
+
     if uWrap(message) == BACKRONYMS_HOST:
         if BACKRONYMS_SCORES:
             retVal = ', '.join(list(BACKRONYMS_SCORES.keys()))
@@ -821,14 +823,16 @@ def backronymsGetPlayers(message):
 def backronymsNudge(message):
     global DEBUG_LOG
     DEBUG_LOG = DEBUG_LOG + 1
+    
     print (str(DEBUG_LOG) + ": " +
-            "Trying to nudge players." +
-            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
-            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
+            "Trying to sign up." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s.\nActivating player is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES))),uWrap(message)))
+
     if uWrap(message) == BACKRONYMS_HOST and BACKRONYMS_GAME_MODE == 3:
         resLis = []
         for i in zUp(BACKRONYMS_SCORES):
-            if i not in BACKRONYMS_WORDS and i != BACKRONYMS_HOST:
+            if i not in BACKRONYMS_WORDS:
                 resLis.append(i)
         backSend(message,', '.join(resLis) + 
                 (": for fuck's sake hurry it up and put in your goddamn answer! It's probably going to be shit anyway!" if not BACKRONYMS_FAMILY else ": you have yet to enter your words for this round! If you've forgotten the word, you can get it with `" +
@@ -840,10 +844,12 @@ def backronymsNudge(message):
 def backronymsGetScore(message):
     global DEBUG_LOG
     DEBUG_LOG = DEBUG_LOG + 1
+    
     print (str(DEBUG_LOG) + ": " +
-            "Trying to get score." +
-            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
-            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
+            "Trying to sign up." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s.\nActivating player is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES))),uWrap(message)))
+
     if uWrap(message) in BACKRONYMS_SCORES:
         if BACKRONYMS_SCORES[uWrap(message)] == None:
             score = str(0) + ". You are currently listed as inactive"
@@ -860,8 +866,8 @@ def backronymsSignUp(message):
     DEBUG_LOG = DEBUG_LOG + 1
     print (str(DEBUG_LOG) + ": " +
             "Trying to sign up." +
-            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
-            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s.\nActivating player is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES))),uWrap(message)))
     if BACKRONYMS_GAME_MODE == 1 and uWrap(message) not in zUp(BACKRONYMS_SCORES):
         backronymsActivatePlayer(uWrap(message))
         backSend(message,"You have been added to the game, " + uWrap(message) + "!" +
@@ -872,15 +878,15 @@ def backronymsSignUp(message):
         backSend(message,"You're already in the game, " + 
                 ("fuckstick!" if not BACKRONYMS_FAMILY else "silly!"))
 ###
-@listen_to("^" + BACKRONYMS_KEY + ": game on$")
+@listen_to("^" + BACKRONYMS_KEY + ": game on!?$",re.IGNORECASE)
 def backronymsStartGame(message):
     global BACKRONYMS_GAME_MODE,BACKRONYMS_HOST,BACKRONYMS_SCORES,BACKRONYMS_word
     global DEBUG_LOG
     DEBUG_LOG = DEBUG_LOG + 1
     print (str(DEBUG_LOG) + ": " +
-            "Trying to start game." +
-            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
-            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
+            "Trying to sign up." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s.\nActivating player is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES))),uWrap(message)))
     if uWrap(message) == BACKRONYMS_HOST and BACKRONYMS_GAME_MODE == 1:
         if len(zUp(BACKRONYMS_SCORES)) < 2:
             backSend(message,"You can't just play Backronyms with only one person! " + 
@@ -906,9 +912,9 @@ def backronymsSetWord(message,word):
     global DEBUG_LOG
     DEBUG_LOG = DEBUG_LOG + 1
     print (str(DEBUG_LOG) + ": " +
-            "Trying to set word." +
-            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
-            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
+            "Trying to sign up." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s.\nActivating player is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES))),uWrap(message)))
     if uWrap(message) not in BACKRONYMS_SCORES:
         backSend(message,"Uh, you aren't even registered, fucktard." if not BACKRONYMS_FAMILY else "Sorry, but you are not a registered player.")
         return
@@ -935,7 +941,7 @@ def backronymsSetWord(message,word):
                 done = False
         if done:
             backSend(message,"All answers have been put in! " + 
-                    ("If you can call them that." if not BACKRONYMS_FAMILY else "") +
+                    ("If you can call them that. " if not BACKRONYMS_FAMILY else "") +
                     BACKRONYMS_HOST + ", it is time to pick a" + 
                     (", ahem, _winner_." if not BACKRONYMS_FAMILY else "winner!") + " Type `" +
             BACKRONYMS_KEY + ": get answers` to see a list of all answers and who picked them" + 
@@ -956,9 +962,9 @@ def backronymsGetWord(message):
     global DEBUG_LOG
     DEBUG_LOG = DEBUG_LOG + 1
     print (str(DEBUG_LOG) + ": " +
-            "Trying to get word." +
-            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
-            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
+            "Trying to sign up." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s.\nActivating player is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES))),uWrap(message)))
     if BACKRONYMS_word:
         backSend(message,"The current word is: \"" + BACKRONYMS_word + "\".")
     else:
@@ -969,9 +975,9 @@ def backronymsGetAnswers(message):
     global DEBUG_LOG
     DEBUG_LOG = DEBUG_LOG + 1
     print (str(DEBUG_LOG) + ": " +
-            "Trying to get answers." +
-            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
-            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
+            "Trying to sign up." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s.\nActivating player is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES))),uWrap(message)))
     if BACKRONYMS_WORDS:
         answer = "```"
         for i in BACKRONYMS_WORDS:
@@ -987,10 +993,12 @@ def backronymsPickWinner(message,winner):
     global BACKRONYMS_GAME_MODE,BACKRONYMS_HOST,BACKRONYMS_WORDS,BACKRONYMS_SCORES,BACKRONYMS_WAITING,BACKRONYMS_word
     global DEBUG_LOG
     DEBUG_LOG = DEBUG_LOG + 1
+    
     print (str(DEBUG_LOG) + ": " +
-            "Trying to pick winner." +
-            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
-            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
+            "Trying to sign up." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s.\nActivating player is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES))),uWrap(message)))
+
     if uWrap(message) == BACKRONYMS_HOST:
         if BACKRONYMS_GAME_MODE != 4:
             backSend(message,"Oh yeah? You're just gonna pick a winner right now, huh? It's not even close to the right time for that, you thick-skulled neanderthal!" if not BACKRONYMS_FAMILY else "It's not time to pick a winner yet, silly!")
@@ -1010,7 +1018,7 @@ def backronymsPickWinner(message,winner):
             backSend(message,winner + ": Congratulations! Your entry, \"" + 
                     BACKRONYMS_WORDS[winner] + "\", is the winner! +1 point for you, for a total of %s!" %
                     str(score) + 
-                    ("Don't let it go to your head though, assface." if not BACKRONYMS_FAMILY else ""))
+                    (" Don't let it go to your head though, assface." if not BACKRONYMS_FAMILY else ""))
             BACKRONYMS_GAME_MODE = 2
             BACKRONYMS_WORDS = {}
             BACKRONYMS_word = ""
@@ -1039,10 +1047,12 @@ def backronymsJoinQueue(message):
     global BACKRONYMS_WAITING,BACKRONYMS_SCORES
     global DEBUG_LOG
     DEBUG_LOG = DEBUG_LOG + 1
+    
     print (str(DEBUG_LOG) + ": " +
-            "Trying to join queue." +
-            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
-            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
+            "Trying to sign up." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s.\nActivating player is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES))),uWrap(message)))
+
     if uWrap(message) in BACKRONYMS_WAITING:
         backSend(message,"You're already in the damn queue, how did you already forget? Did you get thrown around the back of a moving truck as an infant?" if not BACKRONYMS_FAMILY else "You're already in the queue!")
     elif BACKRONYMS_GAME_MODE == 1:
@@ -1061,10 +1071,12 @@ def backronymsDropOut(message,player=None):
     global BACKRONYMS_WAITING,BACKRONYMS_SCORES,BACKRONYMS_WORDS,BACKRONYMS_HOST,BACKRONYMS_GAME_MODE
     global DEBUG_LOG
     DEBUG_LOG = DEBUG_LOG + 1
+    
     print (str(DEBUG_LOG) + ": " +
-            "Trying to drop out." +
-            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
-            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
+            "Trying to sign up." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s.\nActivating player is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES))),uWrap(message)))
+
     if not player:
         if uWrap(message) == BACKRONYMS_HOST:
 #            backSend(message,"You're the host! At least pick a winner first!")
@@ -1091,7 +1103,7 @@ def backronymsDropOut(message,player=None):
                 return
             done = True
             for i in zUp(BACKRONYMS_SCORES):
-                if i not in BACKRONYMS_WORDS and i != BACKRONYMS_HOST:
+                if i not in BACKRONYMS_WORDS:
                     done = False
             if done:
                 backSend(message,"With this dropping-out, all " + 
@@ -1144,10 +1156,12 @@ def backronymsDropOut(message,player=None):
 def backronymsKickUser(message,player):
     global DEBUG_LOG
     DEBUG_LOG = DEBUG_LOG + 1
+    
     print (str(DEBUG_LOG) + ": " +
-            "Trying to kick player." +
-            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
-            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
+            "Trying to sign up." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s.\nActivating player is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES))),uWrap(message)))
+
     if uWrap(message) == BACKRONYMS_HOST:
         backronymsDropOut(message,player)
     else:
@@ -1171,10 +1185,12 @@ def backronymsFamilyNope(message):
 def backronymsHelp(message):
     global DEBUG_LOG
     DEBUG_LOG = DEBUG_LOG + 1
+    
     print (str(DEBUG_LOG) + ": " +
-            "Trying to get help." +
-            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s." %
-            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES)))))
+            "Trying to sign up." +
+            " Current game mode: %s.\nCurrent host is %s.\nCurrent active player count is %s.\nActivating player is %s." %
+            (str(BACKRONYMS_GAME_MODE),BACKRONYMS_HOST if BACKRONYMS_HOST else "not set",str(len(zUp(BACKRONYMS_SCORES))),uWrap(message)))
+
     backSend(message,"The following commands can be given by typing `" +
             BACKRONYMS_KEY + ": COMMAND`. The list of commands is as follows:" +
             """```"get ready!" -- Starts a game of Backronyms. Only usable by admin users.
