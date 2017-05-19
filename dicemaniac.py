@@ -549,7 +549,7 @@ def hi(message):
 
 @listen_to('greetings,? humans?', re.IGNORECASE)
 def beepboop(message):
-    message.reply('BEEP DEPLOY GREETING BOOP HELLO BEEP GREETING DEPLOYED')
+    message.reply('_BEEP_ *DEPLOY GREETING* _BOOP_ *HELLO* _BEEP_ *GREETING DEPLOYED* _BOOP_')
 
 @listen_to('love', re.IGNORECASE)
 def love(message):
@@ -615,7 +615,7 @@ def roll(message):
                 print(str(DEBUG_LOG) + ": " + "Cheat roll applied: " + str(CHEAT_ROLL))
                 CHEAT_ROLL = 0
             ## The elif below should be an "if" if the above part is commented out.
-            elif(dice):
+            elif(dice and dice > 1):
                 for i in range(0,dice):
                     roll = random.randrange(1,sides+1)
                     results.append(roll)
@@ -641,8 +641,8 @@ def roll(message):
             print(getDice(catch))
             if (getDice(catch) == 0):
                 message.reply("You're hilarious.")
-            elif (getDice(catch) == 1):
-                message.reply("Why even bother specifying one die? Are you crazy?")
+#            elif (getDice(catch) == 1):
+#                message.reply("Why even bother specifying one die? Are you crazy?")
             elif (getDice(catch) > MAX_DICE):
                 message.reply("That's a few more than I'm willing to roll. My hands aren't nearly big enough!")
             elif (getSides(catch) == 0):
@@ -691,7 +691,7 @@ def roll(message):
                     print("TESTING: doing a single-die roll.")
                     resString, total, legend = roller(getDice(catch), getSides(catch), getBuff(catch), getMod(catch), total, legend)
         if (resString and ONE_TRIG == False):
-            if (getBuff(catch) or getDice(catch)):
+            if (getBuff(catch) or (getDice(catch) and getDice(catch) > 1)):
                 if (TOTAL_FRONT):
                     resString = 'Total: ' + str(total) + '. ' + resString
                 else:
