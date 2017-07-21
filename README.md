@@ -14,7 +14,9 @@ This bot also uses the following modules:
  * os
  * string
  
-This bot runs on python 3.6 on Arch-linux. I have not tested it on any earlier versions or any other platforms. I will update this as I test on other platforms and determine where else this is supported.
+This bot runs on python 3.6 on Arch-linux, and python 3.5 on Ubuntu. I have not tested it on any earlier versions or any other platforms. I will update this as I test on other platforms and determine where else this is supported.
+
+Most recently, commented out lines 161-162 in /usr/local/lib/python3.5/dist-packages/slackbot/dispatcher.py to turn off default reply, which interferes sometimes with the Wartent functionality.
 
 ========
 ##First-time Setup
