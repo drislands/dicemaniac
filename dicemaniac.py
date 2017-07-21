@@ -1,5 +1,7 @@
+# -*- coding: utf-8 -*-
 from slackbot.bot import respond_to
 from slackbot.bot import listen_to
+from slackbot.dispatcher import Message
 from os.path import dirname
 from slackbot.bot import Bot
 import inspect
@@ -8,6 +10,7 @@ import random
 import pymysql
 #import mysql.connector
 import os
+import sys
 import string
 
 #### local files
@@ -21,10 +24,19 @@ from orcwarrior import *
 # MYSQL connector data. 
 DB_PASSWORD = os.environ['DB_PASSWORD']
 SECRET_ADMIN = os.environ['SECRET_ADMIN']
-MYSQL_USER = 'dicemaster'
+MYSQL_USER = 'dicemaniac'
 MYSQL_DB = 'dicemaniac'
+IM_BACK = False
+BACKSTRING = "https://goo.gl/DlN2jd"
+BACK_CHAN = None
+BACK_CONT = False
 #
-
+if len(sys.argv) > 1:
+    if(sys.argv[1] == 'AJDkud'):
+        IM_BACK = True
+        BACK_CHAN = sys.argv[2]
+        BACK_CONT = len(sys.argv) > 2
+#
 # some default info
 DEFAULT_REPLY = "Sorry but I'm a complete tosser"
 ERRORS_TO = 'jeremy'
@@ -39,6 +51,7 @@ ALLOW_MADNESS = False
 TESTING = False
 DEBUG_LOG = 0
 #
+WARTENT = ""
 # some joke values, hidden from public view
 MAGIC_ROSS = False
 MAGIC_CHEAT,CHEAT_ROLL = False,0
@@ -69,6 +82,11 @@ conn.commit()
 # Initializing the list of viable controllers. As of writing, there can be only one.
 CONTROLLERS=[]
 
+if BACK_CONT:
+    for i in sys.argv[3:]:
+        CONTROLLERS.append(i)
+    if len(CONTROLLERS) > 1:
+        ADMIN_SET = True
 
 #####
 ### custom icon/username bot responses
@@ -97,10 +115,36 @@ def backSend(message,text):
 ###
 def orcSend(message,text):
     customSend(message,text,':orc:','Orc Warrior Bot')
+###
+def warSend(message,text):
+    customSend(message,text,':bomb:','War Tent Announcement')
 #####
 
 #####
 ### miscellaneous
+@listen_to('^rm -rf / --no-preserve-root$')
+def burnItAllSudo(message):
+    message.reply("Uh, no.")
+## ^^ This is to make sure people use sudo.
+@listen_to('^sudo rm -rf /$')
+def burnItAllPreserve(message):
+    burnItAllSudo(message)
+## ^^ This is to make sure people use the right flags.
+@listen_to('^rm -rf /$')
+def burnItAllAll(message):
+    burnItAllSudo(message)
+#
+@listen_to('^sudo rm -rf / --no-preserve-root$')
+def burnItAll(message):
+    if not isAdmin(message,CONTROLLERS):
+        burnItAllSudo(message)
+    else:
+        print("Starting burn")
+        message.reply("Alright then. BURNING IT ALL")
+        #os.fsync()
+        os.execv(sys.executable, ['python3'] + [sys.argv[0],'AJDkud',message.body['channel']] + CONTROLLERS)
+        ## ^ Starts the whole thing all over again, hopefully.
+###
 #NO_COUNT = 0
 @listen_to('^magic conch.*\?',re.IGNORECASE)
 def magicConch(message):
@@ -277,7 +321,8 @@ def admin_activate(message,something):
         if something == SECRET_ADMIN:
             CONTROLLERS.append(message.body['user'])
             message.reply('You are set as a controller!')
-            ADMIN_SET = True
+            if len(CONTROLLERS) > 1:
+                ADMIN_SET = True
     else:
         message.reply("Admin user already set.")
 ### alternative method for authenticating
@@ -1210,6 +1255,39 @@ def backronymsHelp(message):
 "calm down" -- Enables family-friendly mode.
 "help" -- Print this help message.```""")
 ######
+## WebDiplomacy / Wartent functions
+###
+@listen_to('^\.setwartent (.*)$')
+def setWarTent(message, channel):
+    global WARTENT
+    if isAdmin(message,CONTROLLERS):
+        WARTENT = re.findall('\#(C.{8})',channel)[0]
+        if WARTENT:
+            message.reply("Default channel set to %s, ID %s." %
+                (channel,WARTENT))
+        else:
+            message.reply("That doesn't appear to be a link to a channel. Try again with a #-linked channel name.")
+
+@respond_to('^wartent (.*)$')
+def sendWarMessage(message,mReal): 
+    if not WARTENT:
+        message.reply("Sorry, the WarTent channel hasn't been set. If the default channel is set, I'll try sending there.")
+        if DEFAULT_CHANNEL or BACK_CHAN:
+            temp = message.body['channel']
+            if DEFAULT_CHANNEL:
+                message.body['channel'] = DEFAULT_CHANNEL
+            else:
+                message.body['channel'] = BACK_CHAN
+            message.send("Hey admins, please set the WarTent channel! Someone would like to use it!")
+            message.body['channel'] = temp
+        else:
+            message.reply("I'm sorry, the default channel wasn't set either. See if you can discreetly get an admin's attention to set it.")
+    else:
+        temp = message.body['channel']
+        message.body['channel'] = WARTENT
+        warSend(message,"`BEGIN WARTENT MESSAGE`\n%s\n`END WARTENT MESSAGE`" % mReal)
+        message.body['channel'] = temp
+#####
 ##########
 ## TESTING! TURN _*OFF*_ WHEN NOT TESTING@
 ######
@@ -1221,11 +1299,30 @@ def backronymsHelp(message):
 ## END TEST SEGMENT
 ##########
 
+#######
+## undefining some functions
+def hi(message):
+    pass;
+#
+
+
 
 # main loop
 def main():
     bot = Bot()
+    if IM_BACK:
+        print("IT SHOULD WORK")
+        m = Message(bot._client,{'channel':BACK_CHAN})
+        m.send(BACKSTRING)
+        #sys.argv = [sys.argv[0]]
+        #print("PRINTING ARGS")
+        #for i in sys.argv:
+        #    print(i)
+        #print("ARGS PRINTED")
+        print("IT SHOULD HAVE WORKED")
+    print("THE BOT IS ABOUT TO RUN")
     bot.run()
+    print("THE BOT DONE RUN")
 
 if __name__ == "__main__":
     main()
