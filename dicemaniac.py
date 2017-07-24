@@ -117,7 +117,7 @@ def orcSend(message,text):
     customSend(message,text,':orc:','Orc Warrior Bot')
 ###
 def warSend(message,text):
-    customSend(message,text,':bomb:','War Tent Announcement')
+    customSend(message,text,':scroll:','War Tent Courier')
 #####
 
 #####
@@ -1282,11 +1282,65 @@ def sendWarMessage(message,mReal):
             message.body['channel'] = temp
         else:
             message.reply("I'm sorry, the default channel wasn't set either. See if you can discreetly get an admin's attention to set it.")
-    else:
+    if message.body['channel'][:1] == 'D':
         temp = message.body['channel']
         message.body['channel'] = WARTENT
         warSend(message,"`BEGIN WARTENT MESSAGE`\n%s\n`END WARTENT MESSAGE`" % mReal)
         message.body['channel'] = temp
+    else:
+        message.reply("I'd advise against trying that in a public channel..kind of defeats the whole point of the War Tent, no?")
+###
+####
+## Country-to-country anonymous communication functions
+def getCountryData():
+    c.execute("SELECT country,id FROM countries")
+    result = ([],[])
+    data = c.fetchall()
+    if data:
+        for i in data:
+            result[0].append(i[0].lower())
+            result[1].append(i[1])
+    return result
+#
+@respond_to('^setcountry (.*)$', re.IGNORECASE)
+def setCountry(message,country):
+    data = getCountryData()
+    if country in data[0]:
+        message.reply("The country has already been set. Is there trickery afoot...?")
+    elif message.body['channel'] in data[1]:
+        message.reply("You've already set a country for yourself, you know. It's %s, in case you've forgotten." % (data[0][data[1].index(message.body['channel'])])) # this gets the associated country with the channel in question.
+    elif not message.body['channel'][:1] == 'D':
+        message.reply("You should really only set your country in a private message to me.")
+    else:
+        c.execute("INSERT INTO countries VALUES('%s','%s')" % (country,message.body['channel']))
+        conn.commit()
+        message.reply("Your country has been set as %s per your request. Messages sent addressed to it will be sent to you by me in this channel." % (country))
+#
+@respond_to('^tocountry (.*)$', re.IGNORECASE)
+def sendCountryMessage(message,mReal):
+    data = getCountryData()
+    result = re.findall("^(\w+)\s+(.*)$",mReal)
+    country = ""
+    if result:
+        (country,mReal) = result[0]
+        country = country.lower()
+    else:
+        message.reply("You need to specify a country first, and then a message.")
+        return
+    if not data[0]:
+        message.reply("There don't appear to be any countries set yet. You should set yours with `setcountry CountryName` and then use a WarTent announcement to ask your target to set theirs!")
+    elif message.body['channel'] not in data[1]:
+        message.reply("It doesn't look like you've set your country. Set yours by messaging me with `setcountry CountryName`!")
+    elif country not in data[0]:
+        message.reply("There doesn't seem to be a country by that name. Check spelling maybe?")
+    elif not message.body['channel'][:1] == 'D':
+        message.reply("You may want to send that to me privately, mate.")
+    else:
+        sendingCountry = data[0][data[1].index(message.body['channel'])]
+        originalChannel = message.body['channel']
+        message.body['channel'] = data[1][data[0].index(country)]
+        warSend(message,"`BEGIN MESSAGE FROM %s`\n%s\n`END MESSAGE`" % (sendingCountry,mReal))
+        message.body['channel'] = originalChannel
 #####
 ##########
 ## TESTING! TURN _*OFF*_ WHEN NOT TESTING@
@@ -1298,13 +1352,6 @@ def sendWarMessage(message,mReal):
 ######
 ## END TEST SEGMENT
 ##########
-
-#######
-## undefining some functions
-def hi(message):
-    pass;
-#
-
 
 
 # main loop
@@ -1322,7 +1369,7 @@ def main():
         print("IT SHOULD HAVE WORKED")
     print("THE BOT IS ABOUT TO RUN")
     bot.run()
-    print("THE BOT DONE RUN")
+    print("THE BOT DONE RUN") # never prints
 
 if __name__ == "__main__":
     main()
