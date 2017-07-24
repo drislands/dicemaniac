@@ -1290,8 +1290,30 @@ def sendWarMessage(message,mReal):
     else:
         message.reply("I'd advise against trying that in a public channel..kind of defeats the whole point of the War Tent, no?")
 ###
-####
-## Country-to-country anonymous communication functions
+#####
+### Country-to-country anonymous communication functions
+MIN_COUNTRIES = 7
+MAX_COUNTRIES = 7
+COUNTRIES_SET = c.execute("SELECT * from countries") # the execute function returns the number of results found.
+PREVENT_SEND_PRE_MIN = True # no one will be allowed to send messages until all countries have been set. This will help prevent sneaky people from trying to determine who's who.
+COUNTRY_SAFETY = True
+##
+@listen_to('^.countrySafetyOff$')
+def countrySafetyOff(message):
+    global COUNTRY_SAFETY
+    if isAdmin(message,CONTROLLERS):
+        COUNTRY_SAFETY = False
+        message.reply("Warning! Country delete safety has been turned off. All country data may now be deleted. Handle with care!")
+#
+@listen_to('^.clearCountryData$')
+def clearCountryData(message):
+    global COUNTRY_SAFETY
+    if isAdmin(message,CONTROLLERS) and not COUNTRY_SAFETY:
+        c.execute('DELETE FROM countries')
+        c.commit()
+        COUNTRY_SAFETY = True
+        message.reply("All country data has been deleted and the deletion safety has been reset. Please have everyone re-register themselves by DM'ing me the phrase `setcountry CountryName` (case insensitive).") 
+#
 def getCountryData():
     c.execute("SELECT country,id FROM countries")
     result = ([],[])
@@ -1304,20 +1326,27 @@ def getCountryData():
 #
 @respond_to('^setcountry (.*)$', re.IGNORECASE)
 def setCountry(message,country):
+    global COUNTRIES_SET
     data = getCountryData()
-    if country in data[0]:
-        message.reply("The country has already been set. Is there trickery afoot...?")
-    elif message.body['channel'] in data[1]:
+    if message.body['channel'] in data[1]:
         message.reply("You've already set a country for yourself, you know. It's %s, in case you've forgotten." % (data[0][data[1].index(message.body['channel'])])) # this gets the associated country with the channel in question.
+    elif country in data[0]:
+        message.reply("The country has already been set. Is there trickery afoot...?")
+    elif not COUNTRIES_SET < MAX_COUNTRIES:
+        message.reply("Uh oh, the max number of countries has already been set. Did someone steal your spot?")
     elif not message.body['channel'][:1] == 'D':
         message.reply("You should really only set your country in a private message to me.")
     else:
         c.execute("INSERT INTO countries VALUES('%s','%s')" % (country,message.body['channel']))
         conn.commit()
+        COUNTRIES_SET = COUNTRIES_SET + 1
         message.reply("Your country has been set as %s per your request. Messages sent addressed to it will be sent to you by me in this channel." % (country))
 #
 @respond_to('^tocountry (.*)$', re.IGNORECASE)
 def sendCountryMessage(message,mReal):
+    if PREVENT_SEND_PRE_MIN and MIN_COUNTRIES > COUNTRIES_SET:
+        message.reply("Sorry, all countries need to be set before you can message anyone. Consider sending a wartent announcement to the wartent channel to get the other countries' attention!")
+        return
     data = getCountryData()
     result = re.findall("^(\w+)\s+(.*)$",mReal)
     country = ""
