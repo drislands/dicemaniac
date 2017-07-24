@@ -1310,7 +1310,7 @@ def clearCountryData(message):
     global COUNTRY_SAFETY
     if isAdmin(message,CONTROLLERS) and not COUNTRY_SAFETY:
         c.execute('DELETE FROM countries')
-        c.commit()
+        conn.commit()
         COUNTRY_SAFETY = True
         message.reply("All country data has been deleted and the deletion safety has been reset. Please have everyone re-register themselves by DM'ing me the phrase `setcountry CountryName` (case insensitive).") 
 #
