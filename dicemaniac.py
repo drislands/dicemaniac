@@ -16,10 +16,15 @@ import string
 #### local files
 import pokemon
 import magic
+#import wartent
 from macros import *
 from orcwarrior import *
 
 ####
+
+# FOR TESTING!
+bot = None
+#
 
 # MYSQL connector data. 
 DB_PASSWORD = os.environ['DB_PASSWORD']
@@ -65,6 +70,13 @@ MAGIC_CHEAT,CHEAT_ROLL = False,0
 conn = pymysql.connect(user=MYSQL_USER,password=DB_PASSWORD,host='localhost',database=MYSQL_DB)
 c = conn.cursor()
 print("Connected to database.")
+print("Setting session timeout to 3 days.")
+try:
+    c.execute("SET SESSION wait_timeout = 259200")
+    conn.commit()
+    print("Session timeout successfully changed.")
+except:
+    print("Could not change timeout.")
 # setting up connection for giphy score.
 GIPHY_STABLE = True
 c.execute("SELECT val FROM stats WHERE pkey='giphy score'")
@@ -136,6 +148,7 @@ def burnItAllAll(message):
 #
 @listen_to('^sudo rm -rf / --no-preserve-root$')
 def burnItAll(message):
+    ##message.reply("DOWN FOR FIRE MAINTENANCE")
     if not isAdmin(message,CONTROLLERS):
         burnItAllSudo(message)
     else:
@@ -1378,6 +1391,11 @@ def sendCountryMessage(message,mReal):
 #def printAll(message):
 #    print(message.body['user'] + ": " + tx(message))
 #    pokeSend(message,"This is the speaker: <@" + message.body['user'] + ">")
+##@listen_to('^please die$')
+##def killBot(message):
+##    global bot
+##    message.reply("Ok...")
+##    bot._dispatcher._killIt = True
 ######
 ## END TEST SEGMENT
 ##########
@@ -1385,6 +1403,7 @@ def sendCountryMessage(message,mReal):
 
 # main loop
 def main():
+    global bot
     bot = Bot()
     if IM_BACK:
         print("IT SHOULD WORK")
